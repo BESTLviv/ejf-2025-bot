@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config import load_config
-from handlers import registration, menu, admin, broadcast
+from handlers import registration, menu, admin, broadcast, cv_text  
 from middlewares.auth import AuthMiddleware
 from utils.database import get_database
 
@@ -17,9 +17,10 @@ async def main():
     
     dp.include_routers(
         registration.router,
-        menu.router,
-        admin.router,
-        broadcast.router,
+        menu.router, 
+        admin.router, 
+        broadcast.router, 
+        cv_text.router,  
     )
     
     await bot.delete_webhook(drop_pending_updates=True)

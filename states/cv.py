@@ -1,0 +1,22 @@
+from aiogram.fsm.state import State, StatesGroup
+
+class CVForm(StatesGroup):
+    full_name = State()
+    phone = State()
+    email = State()
+    city = State()
+    position = State()
+    education = State()
+    speciality = State()
+    education_years = State()
+    certifications = State()
+    company = State()
+    job_title = State()
+    job_years = State()
+    job_duties = State()
+    tools = State()
+    languages = State()
+    other_skills = State()
+    about = State()
+    schedule = State()
+    confirm = State()
