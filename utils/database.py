@@ -1,15 +1,18 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from config import MONGO_URI
+from config import load_config
 
-client = AsyncIOMotorClient(MONGO_URI)
-db = client["ejf-2025-bot"]
+config = load_config()
+
+
+client = AsyncIOMotorClient(config.mongo_uri)
+db = client[config.mongo_db]  
 
 users_collection = db["users"]
 cv_collection = db["cv"]
 
 async def get_database():
-    client = AsyncIOMotorClient(MONGO_URI)  
-    db = client["ejf-2025-bot"]  
+    client = AsyncIOMotorClient(config.mongo_uri)
+    db = client[config.mongo_db]  
     return db
 
 async def save_user_data(user_id: int, name: str, course: str, university: str, speciality: str):

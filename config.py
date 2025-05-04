@@ -1,6 +1,5 @@
-# config.py
 from dataclasses import dataclass
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 import os
 
 load_dotenv()
@@ -9,7 +8,7 @@ load_dotenv()
 class Config:
     bot_token: str
     admin: str
-    mongo_uri: str
+    mongo_uri: str 
     mongo_db: str
 
 def load_config():
@@ -17,5 +16,5 @@ def load_config():
         bot_token=os.getenv("BOT_TOKEN"),
         admin=os.getenv("ADMIN"),
         mongo_uri=os.getenv("MONGO_URI"),
-        mongo_db=os.getenv("MONGO_DB_NAME")
+        mongo_db=os.getenv("MONGO_DB")  
     )

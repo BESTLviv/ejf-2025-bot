@@ -1,25 +1,27 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config import load_config
-from handlers import registration, menu, admin, broadcast, cv_text  
+from handlers import registration, menu, admin, broadcast, cv_text, start 
 from middlewares.auth import AuthMiddleware
 from utils.database import get_database
 
 config = load_config()
 
-bot = Bot(token=config.bot_token, parse_mode="HTML")
+bot = Bot(token=config.bot_token)
 dp = Dispatcher()
 
 async def main():
+    bot.session.default_parse_mode = "HTML"
     db = await get_database()
     
     dp.message.middleware(AuthMiddleware(db))
     
     dp.include_routers(
+        start.router,
         registration.router,
         menu.router, 
-        admin.router, 
-        broadcast.router, 
+        # admin.router,  
+        # broadcast.router, 
         cv_text.router,  
     )
     

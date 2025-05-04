@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import ReplyKeyboardRemove
+from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from utils.database import add_cv
 from keyboards.cv_kb import get_cv_type_kb
 from states.cv import CVForm
@@ -28,7 +28,7 @@ async def handle_cv_file(message: types.Message):
 
 @router.message(F.text == "📝 Створити CV")
 async def start_cv_form(message: types.Message, state: FSMContext):
-    await message.answer("Почнемо з основної інформації:\n🔹 Ваше повне ім’я (укр / англ)")
+    await message.answer("Почнемо з основної інформації:\n🔹 Ваше повне ім’я")
     await state.set_state(CVForm.full_name)
 
 @router.message(CVForm.full_name)
@@ -55,7 +55,6 @@ async def ask_position(message: types.Message, state: FSMContext):
     await message.answer("🔹 Яку посаду або сферу роботи ви шукаєте?")
     await state.set_state(CVForm.position)
 
-# === Освіта ===
 
 @router.message(CVForm.position)
 async def ask_education(message: types.Message, state: FSMContext):
@@ -81,7 +80,6 @@ async def ask_certifications(message: types.Message, state: FSMContext):
     await message.answer("✅ Додаткові сертифікати / курси (якщо маєте)")
     await state.set_state(CVForm.certifications)
 
-# === Досвід ===
 
 @router.message(CVForm.certifications)
 async def ask_company(message: types.Message, state: FSMContext):
@@ -147,15 +145,33 @@ async def confirm_cv(message: types.Message, state: FSMContext):
     summary = "\n".join([f"• {key}: {value}" for key, value in data.items()])
     await message.answer(f"Ось що ти заповнив(ла):\n\n{summary}\n\nВсе правильно? (Так / Ні)")
     await state.set_state(CVForm.confirm)
+def confirmation_kb():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Так", callback_data="yes")],
+            [InlineKeyboardButton(text="Ні", callback_data="no")]
+        ]
+    )
 
 @router.message(CVForm.confirm)
 async def handle_confirmation(message: types.Message, state: FSMContext):
-    if message.text.lower() == "так":
-        data = await state.get_data()
-        await add_cv(user_id=message.from_user.id, cv_text=str(data))
-        await message.answer("✅ Готово! Ми згенерували твоє CV та зберегли його 💾")
-        await state.clear()
-    else:
-        await message.answer("Окей, давай почнемо спочатку! 🔁")
-        await state.clear()
-        await start_cv_form(message, state)
+    await message.answer(
+        "Ти впевнений(а), що хочеш згенерувати своє CV з цієї інформації?\n"
+        "Якщо так, натисни 'Так', якщо хочеш почати спочатку, натисни 'Ні'.",
+        reply_markup=confirmation_kb()  
+    )
+
+@router.callback_query(F.data == "yes")
+async def confirm_cv(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await add_cv(user_id=callback_query.from_user.id, cv_text=str(data))  
+    await callback_query.answer("✅ Готово! Ми згенерували твоє CV та зберегли його 💾")
+    await callback_query.message.edit_reply_markup(reply_markup=None)  
+    await state.clear()
+
+@router.callback_query(F.data == "no")
+async def restart_cv(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.answer("Окей, давай почнемо спочатку! 🔁")
+    await callback_query.message.edit_reply_markup(reply_markup=None)  
+    await state.clear()
+    await start_cv_form(callback_query.message, state)  

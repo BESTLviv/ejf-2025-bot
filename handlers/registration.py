@@ -29,7 +29,7 @@ async def start_registration(message: types.Message, state: FSMContext):
 @router.message(F.text == "Звісно!")
 async def ask_name(message: types.Message, state: FSMContext):
     await message.answer(
-        "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌 Сеньків Максим"
+        "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌Максим Сеньків"
     )
     await state.set_state(Registration.name)
 
@@ -55,11 +55,6 @@ async def ask_speciality(message: types.Message, state: FSMContext):
     await state.update_data(university=message.text)
     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
     await state.set_state(Registration.speciality)
-
-@router.message(Registration.speciality)
-async def finish_registration(message: types.Message, state: FSMContext):
-    await state.update_data(speciality=message.text)
-    data = await state.get_data()
 
 @router.message(Registration.speciality)
 async def finish_registration(message: types.Message, state: FSMContext):
