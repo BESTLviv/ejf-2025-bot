@@ -4,6 +4,11 @@ from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeybo
 from utils.database import add_cv
 from keyboards.cv_kb import get_cv_type_kb
 from states.cv import CVForm
+from keyboards.main_menu_kb import main_menu_kb
+from aiogram.types import InputFile
+from fpdf import FPDF
+import os
+
 
 router = Router()
 
@@ -13,7 +18,14 @@ async def start_cv_menu(message: types.Message):
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
         "Тож завантажуй своє резюме у форматі PDF та чекай дзвіночка!\n\n"
         "Не маєш CV? Я допоможу – відповідай на декілька запитань, і за кілька хвилин матимеш готове резюме!",
-        reply_markup=get_cv_type_kb()
+        reply_markup=get_cv_type_kb()  
+    )
+
+@router.message(F.text == "📂 Завантажити CV")
+async def ask_cv_file(message: types.Message):
+    await message.answer(
+        "Завантаж своє CV у форматі PDF, і ми збережемо його для тебе!",
+        reply_markup=ReplyKeyboardRemove()  
     )
 
 @router.message(F.document)
@@ -25,6 +37,60 @@ async def handle_cv_file(message: types.Message):
     file_id = message.document.file_id
     await add_cv(message.from_user.id, cv_file_path=file_id)
     await message.answer("✅ CV завантажено! Ти красень! 🎉")
+
+@router.message(F.text == "⬅️ Назад")
+async def back_to_menu(message: types.Message):
+    await message.answer(
+        "Повертаємось до головного меню!",
+        reply_markup=main_menu_kb()
+    )
+
+from fpdf import FPDF
+import os
+from aiogram.types import FSInputFile
+
+async def generate_and_send_cv(callback_query, user_data):
+    filename = f"{user_data['name'].replace(' ', '_')}_cv"
+    pdf_path = f"{filename}.pdf"
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    font_path = os.path.join("assets", "fonts", "Arsenal-Regular.ttf")
+    pdf.add_font("Arsenal", "", font_path, uni=True)
+    pdf.set_font("Arsenal", size=12)
+
+    pdf.cell(200, 10, txt="Curriculum Vitae", ln=True, align='C')
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Ім'я та прізвище: {user_data['name']}", ln=True)
+    pdf.cell(200, 10, txt=f"Курс: {user_data['course']}", ln=True)
+    pdf.cell(200, 10, txt=f"Університет: {user_data['university']}", ln=True)
+    pdf.cell(200, 10, txt=f"Спеціальність: {user_data['specialty']}", ln=True)
+    pdf.ln(5)
+
+    if user_data.get("skills"):
+        pdf.multi_cell(0, 10, txt=f"Навички: {user_data['skills']}")
+
+    if user_data.get("experience"):
+        pdf.multi_cell(0, 10, txt=f"Досвід: {user_data['experience']}")
+
+    if user_data.get("qualities"):
+        pdf.multi_cell(0, 10, txt=f"Особисті якості: {user_data['qualities']}")
+
+    pdf.output(pdf_path)
+
+    # 2. Надсилаємо PDF
+    document = FSInputFile(pdf_path, filename=f"{filename}.pdf")
+    msg = await callback_query.message.answer_document(document, caption="✅ Ось твоє згенероване CV!")
+
+    # 3. Зберігаємо file_id у базу через add_cv
+    file_id = msg.document.file_id
+    await add_cv(callback_query.from_user.id, cv_file_path=file_id) 
+
+    # 4. Видаляємо локальний файл
+    os.remove(pdf_path)
+    return pdf_path 
+
 
 @router.message(F.text == "📝 Створити CV")
 async def start_cv_form(message: types.Message, state: FSMContext):
@@ -143,8 +209,10 @@ async def confirm_cv(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     summary = "\n".join([f"• {key}: {value}" for key, value in data.items()])
-    await message.answer(f"Ось що ти заповнив(ла):\n\n{summary}\n\nВсе правильно? (Так / Ні)")
+    await message.answer(f"Ось що ти заповнив(ла):\n\n{summary}\n\nВсе правильно? (Так / Ні)",
+    reply_markup = confirmation_kb())
     await state.set_state(CVForm.confirm)
+
 def confirmation_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -164,10 +232,22 @@ async def handle_confirmation(message: types.Message, state: FSMContext):
 @router.callback_query(F.data == "yes")
 async def confirm_cv(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    await add_cv(user_id=callback_query.from_user.id, cv_text=str(data))  
-    await callback_query.answer("✅ Готово! Ми згенерували твоє CV та зберегли його 💾")
-    await callback_query.message.edit_reply_markup(reply_markup=None)  
+
+    filename = f"cv_{callback_query.from_user.id}"
+    
+    file_path = await generate_and_send_cv(callback_query, data)
+    with open(file_path, 'rb') as file:
+        doc = await callback_query.message.answer_document(
+            InputFile(file, filename=f"{filename}.pdf"),caption="✅ Ось твоє згенероване CV!"
+    )
+
+    file_id = doc.document.file_id
+    await add_cv(user_id=callback_query.from_user.id, cv_file_path=file_id)
+
+    await callback_query.answer("CV надіслано та збережено!")
+    await callback_query.message.edit_reply_markup(reply_markup=None)
     await state.clear()
+
 
 @router.callback_query(F.data == "no")
 async def restart_cv(callback_query: types.CallbackQuery, state: FSMContext):

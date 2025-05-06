@@ -1,14 +1,16 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config import load_config
-from handlers import registration, menu, admin, broadcast, cv_text, start 
+from handlers import registration, menu, admin, broadcast, cv, start 
 from middlewares.auth import AuthMiddleware
 from utils.database import get_database
+from handlers import cv
 
 config = load_config()
 
 bot = Bot(token=config.bot_token)
 dp = Dispatcher()
+
 
 async def main():
     bot.session.default_parse_mode = "HTML"
@@ -22,7 +24,7 @@ async def main():
         menu.router, 
         # admin.router,  
         # broadcast.router, 
-        cv_text.router,  
+        cv.router,  
     )
     
     await bot.delete_webhook(drop_pending_updates=True)

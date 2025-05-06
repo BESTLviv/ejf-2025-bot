@@ -45,23 +45,6 @@ async def validate_name(message: types.Message, state: FSMContext):
                          reply_markup=get_course_kb())
     await state.set_state(Registration.course)
 
-# @router.message(Registration.course)
-# async def ask_university(message: types.Message, state: FSMContext):
-#     await state.update_data(course=message.text)
-    
-#     if message.text in ["🔹 Не навчаюсь", "🔹 Ще у школі/коледжі"]:
-#         await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
-#         await state.set_state(Registration.speciality)
-#     else:
-#         await message.answer("А в якому університеті?", reply_markup=get_university_kb())
-#         await state.set_state(Registration.university)
-
-# @router.message(Registration.university)
-# async def ask_speciality(message: types.Message, state: FSMContext):
-#     await state.update_data(university=message.text)
-#     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
-#     await state.set_state(Registration.speciality)
-
 @router.message(Registration.course)
 async def ask_university_or_finish(message: types.Message, state: FSMContext):
     await state.update_data(course=message.text)

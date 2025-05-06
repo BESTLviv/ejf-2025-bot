@@ -2,6 +2,12 @@ from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram import F
 from keyboards.main_menu_kb import main_menu_kb
+from aiogram import types, Router 
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardButton, CallbackQuery,InputMediaPhoto
+from aiogram.types.input_file import FSInputFile
+from keyboards.cv_kb import get_cv_type_kb
+import os
 
 
 router = Router()
@@ -25,20 +31,16 @@ from aiogram.types import FSInputFile
 @router.message(F.text == "📅  Розклад")
 async def show_schedule(message: types.Message):
     photo_path = "media/schedule.jpg"
-    caption = (
-        "Ми створили <a href='https://ejf.best-lviv.org.ua/schedule'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність. "
-        "Використай цю можливість на максимум, та з нетерпінням чекаємо тебе!"
-    )
-    photo = FSInputFile(photo_path)
     await message.answer_photo(
-        photo=photo,
-        caption=caption,
+        photo=FSInputFile(photo_path),
+        caption="Ми створили <a href='https://ejf.best-lviv.org.ua/schedule'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність. "
+        "Використай цю можливість на максимум, та з нетерпінням чекаємо тебе!",
         parse_mode="HTML"
     )
 
-@router.message(F.text == "📂 СV")
-async def show_cv(message: types.Message):
-    await message.answer("Завантажте своє резюме або створіть його за допомогою бота. Що ви хочете зробити? 📄")
+
+
+
 
 @router.message(F.text == "🎯 Гра Share and Win")
 async def share_and_win(message: types.Message):
@@ -54,9 +56,83 @@ async def share_and_win(message: types.Message):
 async def chat_with_participants(message: types.Message):
     await message.answer("Доєднуйся до нашої спільноти та  ділися враженнями з іншими  учасниками. Для цього перейди за цим посиланням 👉 https://t.me/bestlviv")
 
+
+
+@router.message(F.text == "Я єблан" or F.text == "Я їблан" )
+async def chat_with_participants(message: types.Message):
+    await message.answer("Я знаю")
+
+
+
+file_ids = {}
+
+speakers = [
+    {
+        "name": "Володимир Іваченко",
+        "photo_path": "media/zbir.jpg",
+        "description": "Експерт з ІТ та підприємництва.",
+        "key": "ivachenko"
+    },
+    {
+        "name": "Олена Сидоренко",
+        "photo_path": "media/shareandwin.jpg",
+        "description": "Психолог, коуч та тренерка.",
+        "key": "sidorenko"
+    },
+]
+
+def build_speaker_keyboard(selected_index: int):
+    kb = InlineKeyboardBuilder()
+    for i, speaker in enumerate(speakers):
+        name = speaker["name"]
+        if i == selected_index:
+            text = f"▶️{name}◀️"
+        else:
+            text = name
+        kb.add(InlineKeyboardButton(text=text, callback_data=f"select_speaker:{i}"))
+    return kb.adjust(1).as_markup()
+
 @router.message(F.text == "🗣️ Спікери")
 async def show_speakers(message: types.Message):
-    await message.answer("Тут буде список спікерів на Ярмарку. Бажаєте дізнатись більше про спікерів? 👨‍🏫")
+    selected_index = 0
+    speaker = speakers[selected_index]
+    photo = FSInputFile(speaker["photo_path"])
+    keyboard = build_speaker_keyboard(selected_index)
+
+    msg = await message.answer_photo(
+        photo=photo,
+        caption=f"{speaker['name']}\n{speaker['description']}",
+        reply_markup=keyboard
+    )
+
+    # Збереження file_id
+    file_ids[speaker["key"]] = msg.photo[-1].file_id
+
+@router.callback_query(F.data.startswith("select_speaker:"))
+async def select_speaker(callback: CallbackQuery):
+    selected_index = int(callback.data.split(":")[1])
+    speaker = speakers[selected_index]
+    keyboard = build_speaker_keyboard(selected_index)
+
+    # Отримуємо file_id або надсилаємо файл повторно
+    file_id = file_ids.get(speaker["key"])
+    if not file_id:
+        file = FSInputFile(speaker["photo_path"])
+        msg = await callback.message.answer_photo(
+            photo=file,
+            caption=f"{speaker['name']}\n{speaker['description']}",
+            reply_markup=keyboard
+        )
+        file_ids[speaker["key"]] = msg.photo[-1].file_id
+        await callback.message.delete()
+    else:
+        media = InputMediaPhoto(
+            media=file_id,
+            caption=f"{speaker['name']}\n{speaker['description']}"
+        )
+        await callback.message.edit_media(media=media, reply_markup=keyboard)
+
+    await callback.answer()
 
 @router.message(F.text == "🩵💛 Підтримка ЗСУ")
 async def show_ukraine_support(message: types.Message):
