@@ -6,7 +6,8 @@ from aiogram.fsm.state import State, StatesGroup
 from dotenv import load_dotenv
 from aiogram.types.input_file import FSInputFile 
 import os
-
+from aiogram.exceptions import TelegramAPIError
+import asyncio
 from utils.database import get_all_users
 
 load_dotenv()
@@ -34,7 +35,6 @@ def confirm_broadcast_kb():
         ]
     )
 
-# --- Хендлери ---
 @router.message(F.text == ADMIN)
 async def admin_message_handler(message: types.Message):
     await message.answer(
@@ -75,8 +75,10 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         try:
             await callback.bot.send_message(user_id, text_to_broadcast, parse_mode="HTML")
             success += 1
-        except Exception as e:
+        except TelegramAPIError as e: 
             fail += 1
+            await asyncio.sleep(0.1) 
+
 
     await callback.message.answer(f"Розсилку завершено!\n✅ Успішно: {success}\n❌ Помилки: {fail}")
     await state.clear()
@@ -88,23 +90,40 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
 
 from utils.database import cv_collection
 import os
+import aiohttp
+import json
+from config import load_config 
+
+def format_cv_text(cv_text) -> str:
+    if isinstance(cv_text, str):
+        try:
+            cv_text = json.loads(cv_text)
+        except Exception:
+            return f"<i>Невірний формат CV:</i> {cv_text}"
+
+    formatted = ""
+    for key, value in cv_text.items():
+        title = key.replace('_', ' ').capitalize()
+        formatted += f"<b>{title}:</b> {value}\n"
+    return formatted.strip()
+
 @router.callback_query(F.data == "get_cvs")
 async def get_cvs_callback(callback: CallbackQuery):
     await callback.message.answer("Збираю всі CV користувачів...")
 
     cursor = cv_collection.find({})
     count = 0
-    async for cv in cursor:
+
+    for cv in await cursor.to_list(length=None):
         user_id = cv.get("user_id")
         cv_text = cv.get("cv_text")
-        cv_file_id = cv.get("cv_file_id")  
+        cv_file_path = cv.get("cv_file_path")
 
         if cv_text:
+            formatted = format_cv_text(cv_text)
             await callback.message.answer(
-                f"<b>Користувач ID:</b> <code>{user_id}</code>\n"
-                f"<b>Текстове CV:</b>\n{cv_text}",
-                parse_mode="HTML"
-            )
+                f"<b>Користувач ID:</b> <code>{user_id}</code>\n{formatted}",
+                parse_mode="HTML")
         else:
             await callback.message.answer(
                 f"<b>Користувач ID:</b> <code>{user_id}</code>\n"
@@ -112,12 +131,21 @@ async def get_cvs_callback(callback: CallbackQuery):
                 parse_mode="HTML"
             )
 
-        if cv_file_id:
+        if cv_file_path:
             try:
-                await callback.message.answer_document(cv_file_id, caption=f"📄 PDF CV користувача {user_id}")
+                file_info = await callback.bot.get_file(cv_file_path)
+                file_url = f"https://api.telegram.org/file/bot{callback.bot.token}/{file_info.file_path}"
+
+                await callback.message.answer(
+                    f"<b>Користувач ID:</b> <code>{user_id}</code>\n"
+                    f"📎 <b>PDF CV:</b> <a href='{file_url}'>Завантажити файл</a>",
+                    parse_mode="HTML",
+                    disable_web_page_preview=True)
+
             except Exception as e:
                 await callback.message.answer(
-                    f"❌ Не вдалося надіслати PDF CV для користувача {user_id}.\nПомилка: <code>{e}</code>",
+                    f"❌ Не вдалося створити посилання на PDF CV для користувача {user_id}.\n"
+                    f"Помилка: <code>{e}</code>",
                     parse_mode="HTML"
                 )
         else:

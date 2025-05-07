@@ -1,260 +1,186 @@
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from utils.database import add_cv
+from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InputFile
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.filters import CommandStart
+from utils.database import get_user, add_cv
 from keyboards.cv_kb import get_cv_type_kb
-from states.cv import CVForm
 from keyboards.main_menu_kb import main_menu_kb
-from fpdf import FPDF
+from PIL import Image, ImageDraw, ImageFont
 import os
-from aiogram.types import FSInputFile
-import os
-import requests
-from fpdf import FPDF
-from aiogram.types import FSInputFile
+from aiogram.types import BufferedInputFile
+
+cv_router = Router()
 
 
-router = Router()
+class CVStates(StatesGroup):
+    position = State()
+    languages = State()
+    education = State()
+    experience = State()
+    skills = State()
+    contacts = State()
+    about = State()
+    confirmation = State()
 
-@router.message(F.text == "📂 CV")
+
+@cv_router.message(F.text == "📂 CV")
 async def start_cv_menu(message: types.Message):
     await message.answer(
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
-        "Тож завантажуй своє резюме у форматі PDF та чекай дзвіночка!\n\n"
-        "Не маєш CV? Я допоможу – відповідай на декілька запитань, і за кілька хвилин матимеш готове резюме!",
-        reply_markup=get_cv_type_kb()  
+        "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!",
+        reply_markup=get_cv_type_kb()
     )
 
-@router.message(F.text == "📂 Завантажити CV")
+
+@cv_router.message(F.text == "📂 Завантажити CV")
 async def ask_cv_file(message: types.Message):
     await message.answer(
         "Завантаж своє CV у форматі PDF, і ми збережемо його для тебе!",
-        reply_markup=ReplyKeyboardRemove()  
+        reply_markup=ReplyKeyboardRemove()
     )
 
-@router.message(F.document)
+
+@cv_router.message(F.document)
 async def handle_cv_file(message: types.Message):
     if message.document.mime_type != "application/pdf":
-        await message.answer("❗Упс, схоже, що формат файлу неправильний. Спробуй ще раз, використовуючи PDF")
+        await message.answer("❗ Це не PDF. Спробуй ще раз.")
         return
 
     file_id = message.document.file_id
     await add_cv(message.from_user.id, cv_file_path=file_id)
-    await message.answer("✅ CV завантажено! Ти красень! 🎉",
-    reply_markup=main_menu_kb())
+    await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
-@router.message(F.text == "⬅️ Назад")
-async def back_to_menu(message: types.Message):
-    await message.answer(
-        "Повертаємось до головного меню!",
-        reply_markup=main_menu_kb()
-    )
+@cv_router.message(F.text == "📝 Створити CV")
+async def cmd_start(message: types.Message, state: FSMContext):
+    await state.clear()
+    await state.set_state(CVStates.position)
+    await message.answer("Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
 
 
-
-FONT_URL = "https://github.com/dejavu-fonts/dejavu-fonts/raw/version_2_37/ttf/DejaVuSans.ttf"
-FONT_DIR = "fonts"
-FONT_PATH = os.path.join(FONT_DIR, "DejaVuSans.ttf")
-
-# Функція для завантаження шрифту
-def download_font():
-    if not os.path.exists(FONT_PATH):
-        os.makedirs(FONT_DIR, exist_ok=True)
-        with open(FONT_PATH, "wb") as f:
-            f.write(requests.get(FONT_URL).content)
-
-async def generate_and_send_cv(callback_query, user_data):
-    download_font()  # Завантажує шрифт, якщо його немає
-
-    filename = f"{user_data['full_name'].replace(' ', '_')}_cv"
-    pdf_path = f"{filename}.pdf"
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.add_font("DejaVu", "", FONT_PATH, uni=True)
-    pdf.set_font("DejaVu", size=12)
-
-    pdf.cell(200, 10, txt="Curriculum Vitae", ln=True, align='C')
-    pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Ім'я та прізвище: {user_data['full_name']}", ln=True)
-    pdf.cell(200, 10, txt=f"Роки навчання: {user_data.get('education_years', '')}", ln=True)
-    pdf.cell(200, 10, txt=f"Університет: {user_data.get('education', '')}", ln=True)
-    pdf.cell(200, 10, txt=f"Спеціальність: {user_data.get('speciality', '')}", ln=True)
-    pdf.ln(5)
-
-    if user_data.get("skills"):
-        pdf.multi_cell(0, 10, txt=f"Навички: {user_data['skills']}")
-    if user_data.get("experience"):
-        pdf.multi_cell(0, 10, txt=f"Досвід: {user_data['experience']}")
-    if user_data.get("qualities"):
-        pdf.multi_cell(0, 10, txt=f"Особисті якості: {user_data['qualities']}")
-
-    pdf.output(pdf_path)
-
-    document = FSInputFile(pdf_path, filename=f"{filename}.pdf")
-    msg = await callback_query.message.answer_document(document, caption="✅ Ось твоє згенероване CV!")
-
-    file_id = msg.document.file_id
-    await add_cv(callback_query.from_user.id, cv_file_path=file_id)
-
-    os.remove(pdf_path)
-    return pdf_path
-
-@router.message(F.text == "📝 Створити CV")
-async def start_cv_form(message: types.Message, state: FSMContext):
-    await message.answer("Почнемо з основної інформації:\n🔹 Ваше повне ім’я")
-    await state.set_state(CVForm.full_name)
-
-@router.message(CVForm.full_name)
-async def ask_phone(message: types.Message, state: FSMContext):
-    await state.update_data(full_name=message.text)
-    await message.answer("🔹 Номер телефону")
-    await state.set_state(CVForm.phone)
-
-@router.message(CVForm.phone)
-async def ask_email(message: types.Message, state: FSMContext):
-    await state.update_data(phone=message.text)
-    await message.answer("🔹 Електронна пошта")
-    await state.set_state(CVForm.email)
-
-@router.message(CVForm.email)
-async def ask_city(message: types.Message, state: FSMContext):
-    await state.update_data(email=message.text)
-    await message.answer("🔹 Місто проживання")
-    await state.set_state(CVForm.city)
-
-@router.message(CVForm.city)
-async def ask_position(message: types.Message, state: FSMContext):
-    await state.update_data(city=message.text)
-    await message.answer("🔹 Яку посаду або сферу роботи ви шукаєте?")
-    await state.set_state(CVForm.position)
-
-
-@router.message(CVForm.position)
-async def ask_education(message: types.Message, state: FSMContext):
+@cv_router.message(CVStates.position)
+async def process_position(message: types.Message, state: FSMContext):
     await state.update_data(position=message.text)
-    await message.answer("🎓 Назва навчального закладу")
-    await state.set_state(CVForm.education)
-
-@router.message(CVForm.education)
-async def ask_speciality(message: types.Message, state: FSMContext):
-    await state.update_data(education=message.text)
-    await message.answer("📘 Спеціальність")
-    await state.set_state(CVForm.speciality)
-
-@router.message(CVForm.speciality)
-async def ask_education_years(message: types.Message, state: FSMContext):
-    await state.update_data(speciality=message.text)
-    await message.answer("📅 Роки навчання (від - до)")
-    await state.set_state(CVForm.education_years)
-
-@router.message(CVForm.education_years)
-async def ask_certifications(message: types.Message, state: FSMContext):
-    await state.update_data(education_years=message.text)
-    await message.answer("✅ Додаткові сертифікати / курси (якщо маєте)")
-    await state.set_state(CVForm.certifications)
+    await state.set_state(CVStates.languages)
+    await message.answer("Які мови ви знаєте?")
 
 
-@router.message(CVForm.certifications)
-async def ask_company(message: types.Message, state: FSMContext):
-    await state.update_data(certifications=message.text)
-    await message.answer("💼 Назва компанії (якщо є досвід)")
-    await state.set_state(CVForm.company)
-
-@router.message(CVForm.company)
-async def ask_job_title(message: types.Message, state: FSMContext):
-    await state.update_data(company=message.text)
-    await message.answer("🔹 Посада")
-    await state.set_state(CVForm.job_title)
-
-@router.message(CVForm.job_title)
-async def ask_job_years(message: types.Message, state: FSMContext):
-    await state.update_data(job_title=message.text)
-    await message.answer("🔹 Роки роботи")
-    await state.set_state(CVForm.job_years)
-
-@router.message(CVForm.job_years)
-async def ask_job_duties(message: types.Message, state: FSMContext):
-    await state.update_data(job_years=message.text)
-    await message.answer("🔹 Основні обов’язки на роботі")
-    await state.set_state(CVForm.job_duties)
-
-
-@router.message(CVForm.job_duties)
-async def ask_tools(message: types.Message, state: FSMContext):
-    await state.update_data(job_duties=message.text)
-    await message.answer("🛠️ Якими програмами або інструментами вмієте користуватися?")
-    await state.set_state(CVForm.tools)
-
-@router.message(CVForm.tools)
-async def ask_languages(message: types.Message, state: FSMContext):
-    await state.update_data(tools=message.text)
-    await message.answer("🌐 Знання мов (які і на якому рівні)")
-    await state.set_state(CVForm.languages)
-
-@router.message(CVForm.languages)
-async def ask_other_skills(message: types.Message, state: FSMContext):
+@cv_router.message(CVStates.languages)
+async def process_languages(message: types.Message, state: FSMContext):
     await state.update_data(languages=message.text)
-    await message.answer("🤹‍♂️ Які ще корисні навички маєте?")
-    await state.set_state(CVForm.other_skills)
+    await state.set_state(CVStates.about)
+    await message.answer("Пару слів про вас")
 
-
-@router.message(CVForm.other_skills)
-async def ask_about(message: types.Message, state: FSMContext):
-    await state.update_data(other_skills=message.text)
-    await message.answer("👤 Опишіть себе як працівника")
-    await state.set_state(CVForm.about)
-
-@router.message(CVForm.about)
-async def ask_schedule(message: types.Message, state: FSMContext):
+@cv_router.message(CVStates.about)
+async def process_languages(message: types.Message, state: FSMContext):
     await state.update_data(about=message.text)
-    await message.answer("⏰ Який графік вам підходить?")
-    await state.set_state(CVForm.schedule)
+    await state.set_state(CVStates.education)
+    await message.answer("Ваша освіта?")
 
 
-def confirmation_kb():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Так", callback_data="yes")],
-            [InlineKeyboardButton(text="Ні", callback_data="no")]
-        ]
-    )
+@cv_router.message(CVStates.education)
+async def process_education(message: types.Message, state: FSMContext):
+    await state.update_data(education=message.text)
+    await state.set_state(CVStates.experience)
+    await message.answer("Ваш досвід роботи?")
 
 
-@router.message(CVForm.schedule)
-async def confirm_cv(message: types.Message, state: FSMContext):
-    await state.update_data(schedule=message.text)
+@cv_router.message(CVStates.experience)
+async def process_experience(message: types.Message, state: FSMContext):
+    await state.update_data(experience=message.text)
+    await state.set_state(CVStates.skills)
+    await message.answer("Ваші навички?")
+
+
+@cv_router.message(CVStates.skills)
+async def process_skills(message: types.Message, state: FSMContext):
+    await state.update_data(skills=message.text)
+    await state.set_state(CVStates.contacts)
+    await message.answer("Контактна інформація?")
+
+
+@cv_router.message(CVStates.contacts)
+async def process_contacts(message: types.Message, state: FSMContext):
+    await state.update_data(contacts=message.text)
     data = await state.get_data()
 
-    summary = "\n".join([f"• {key}: {value}" for key, value in data.items()])
-    kb = types.ReplyKeyboardMarkup(
-        keyboard=[
-            [types.KeyboardButton(text="Так"),types.KeyboardButton(text="Ні")]
-        ],
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else "Невідомо"
+
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data['position']}\n"
+        f"Мови: {data['languages']}\n"
+        f"Освіта: {data['education']}\n"
+        f"Досвід: {data['experience']}\n"
+        f"Навички: {data['skills']}\n"
+        f"Контакти: {data['contacts']}\n\n"
+        "Все вірно?"
+    )
+
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Так"), KeyboardButton(text="Ні")]],
         resize_keyboard=True
     )
-    await message.answer(f"Ось що ти заповнив(ла):\n\n{summary}\n\nВсе правильно? (Так / Ні)",
-    reply_markup=kb)
-    await state.set_state(CVForm.confirm)
+    await message.answer(summary, reply_markup=keyboard)
+    await state.set_state(CVStates.confirmation)
 
-import json
+from utils.database import get_user, add_cv
 
-@router.message(CVForm.confirm, F.text.in_(["Так", "Ні"]))
-async def handle_confirmation(message: types.Message, state: FSMContext):
-    if message.text == "Так":
-        data = await state.get_data()
-        await add_cv(
-            user_id=message.from_user.id,
-            cv_text=json.dumps(data, ensure_ascii=False)
-        )
+@cv_router.message(CVStates.confirmation, F.text.casefold() == "так")
+async def process_confirm_yes(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    try:
+        user = await get_user(message.from_user.id)
+        user_name = user.get("name", "") if user else ""
+    except Exception as e:
+        print(f"Error getting user: {e}")
+        user_name = ""
+    template_path = "templates/cv_template.png"
+    if not os.path.exists(template_path):
+        await message.answer("⚠️ Шаблон CV не знайдено. Перевірте, чи файл 'cv_template.png' існує в папці 'templates'.")
+        return
 
-        await message.answer(
-            "✅ Інформація збережена! Можеш завантажити своє CV або повернутись у меню.",
-            reply_markup=main_menu_kb()
-        )
-        await state.clear()
-    else:
-        await message.answer("Окей, давай почнемо спочатку! 🔁", reply_markup=ReplyKeyboardRemove())
-        await state.clear()
-        await start_cv_form(message, state)
+    image = Image.open("templates/cv_template.png").convert("RGB")
+    draw = ImageDraw.Draw(image)
+    font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 18)
+    font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 36)
+
+    draw.text((150, 70),  f"Ім'я: {user_name}", font=font_title, fill="#111A94")
+    draw.text((150, 120), f"Очікувана посада: {data['position']}", font=font_text, fill="#111A94")
+    draw.text((150, 160), f"Володіння мовами: {data['languages']}", font=font_text, fill="#111A94")
+    draw.text((150, 200), f"Освіта: {data['education']}", font=font_text, fill="#111A94")
+    draw.text((150, 240), f"Досвід: {data['experience']}", font=font_text, fill="#111A94")
+    draw.text((150, 270), f"Навички: {data['skills']}", font=font_text, fill="#111A94")
+    draw.text((150, 300), f"Про кандидата: {data['about']}", font=font_text, fill="#111A94")
+    draw.text((150, 320), f"Контакти: {data['contacts']}", font=font_text, fill="#111A94")
+
+    pdf_path = f"cv_{message.from_user.id}.pdf"
+    image.save(pdf_path, "PDF")
+
+    with open(pdf_path, "rb") as pdf_file:
+        file_bytes = pdf_file.read()
+        document = BufferedInputFile(file=file_bytes, filename=f"CV_{message.from_user.id}.pdf")
+        doc = await message.answer_document(document)
+        file_id = doc.document.file_id
+
+
+    await add_cv(message.from_user.id, file_id)
+
+    os.remove(pdf_path)
+
+    await message.answer("✅ CV згенеровано!", reply_markup=main_menu_kb())
+    await state.clear()
+
+@cv_router.message(CVStates.confirmation, F.text.casefold() == "ні")
+async def process_confirm_no(message: types.Message, state: FSMContext):
+    await state.clear()
+    await state.set_state(CVStates.position)
+    await message.answer("Добре, давай спробуємо ще раз. Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
+
+
+@cv_router.message(F.text == "⬅️ Назад")
+async def back_to_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Повертаємось до головного меню!", reply_markup=main_menu_kb())

@@ -22,22 +22,25 @@ async def start_registration(message: types.Message, state: FSMContext):
         one_time_keyboard=True
     )
     await message.answer(
-        "📢 Інженерний Ярмарок Кар’єри — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
+        "📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
         "Тепер, познайомимося ближче!",
-        reply_markup=keyboard
+        reply_markup=keyboard,
+        parse_mode="HTML"
     )
 
 @router.message(F.text == "Звісно!")
 async def ask_name(message: types.Message, state: FSMContext):
     await message.answer(
-        "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌Максим Сеньків"
+        "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌 Максим Сеньків(до речі, знайомся це наш головний організатор!)",
+        parse_mode="HTML"
+
     )
     await state.set_state(Registration.name)
 
 @router.message(Registration.name)
 async def validate_name(message: types.Message, state: FSMContext):
     parts = message.text.strip().split()
-    if len(parts) < 2:
+    if len(parts) < 2 or len(parts) > 2:
         await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
         return
     await state.update_data(name=message.text)
@@ -69,10 +72,26 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
         await state.set_state(Registration.university)
 
 @router.message(Registration.university)
-async def ask_speciality(message: types.Message, state: FSMContext):
-    await state.update_data(university=message.text)
+async def ask_speciality_or_custom_university(message: types.Message, state: FSMContext):
+    if message.text == "🎓 Інший":
+        await message.answer("Тоді напиши, будь ласка назву свого університету:")
+        await state.set_state(Registration.university_custom)  # Новий стан для введення назви університету
+    else:
+        await state.update_data(university=message.text)
+        await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
+        await state.set_state(Registration.speciality)
+
+@router.message(State("Registration:university_custom"))
+async def handle_custom_university(message: types.Message, state: FSMContext):
+    await state.update_data(university=message.text)  
     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
     await state.set_state(Registration.speciality)
+
+# @router.message(Registration.university)
+# async def ask_speciality(message: types.Message, state: FSMContext):
+#     await state.update_data(university=message.text)
+#     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
+#     await state.set_state(Registration.speciality)
 
 @router.message(Registration.speciality)
 async def finish_registration(message: types.Message, state: FSMContext):
