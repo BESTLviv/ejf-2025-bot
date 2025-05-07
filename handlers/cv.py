@@ -8,6 +8,7 @@ from keyboards.cv_kb import get_cv_type_kb
 from keyboards.main_menu_kb import main_menu_kb
 from PIL import Image, ImageDraw, ImageFont
 import os
+import textwrap
 from aiogram.types import BufferedInputFile
 
 cv_router = Router()
@@ -144,17 +145,24 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
 
     image = Image.open("templates/cv_template.png").convert("RGB")
     draw = ImageDraw.Draw(image)
-    font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 18)
+    font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 14)
     font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 36)
 
-    draw.text((150, 70),  f"Ім'я: {user_name}", font=font_title, fill="#111A94")
-    draw.text((150, 120), f"Очікувана посада: {data['position']}", font=font_text, fill="#111A94")
-    draw.text((150, 160), f"Володіння мовами: {data['languages']}", font=font_text, fill="#111A94")
-    draw.text((150, 200), f"Освіта: {data['education']}", font=font_text, fill="#111A94")
-    draw.text((150, 240), f"Досвід: {data['experience']}", font=font_text, fill="#111A94")
-    draw.text((150, 270), f"Навички: {data['skills']}", font=font_text, fill="#111A94")
-    draw.text((150, 300), f"Про кандидата: {data['about']}", font=font_text, fill="#111A94")
-    draw.text((150, 320), f"Контакти: {data['contacts']}", font=font_text, fill="#111A94")
+    def draw_wrapped_text(draw, text, font, fill, x, y, max_width):
+        lines = textwrap.wrap(text, width=max_width)
+        line_height = font.getbbox("A")[1] 
+        for line in lines:
+            draw.text((x, y), line, font=font, fill=fill)
+            y += line_height 
+
+    draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=200, y=70, max_width=40)
+    draw_wrapped_text(draw, f"Очікувана посада:\n {data['position']}", font=font_text, fill="#111A94", x=200, y=120, max_width=80)
+    draw_wrapped_text(draw, f"Володіння мовами:\n{data['languages']}", font=font_text, fill="#111A94", x=200, y=210, max_width=80)
+    draw_wrapped_text(draw, f"Освіта:\n{data['education']}", font=font_text, fill="#111A94", x=200, y=270, max_width=80)
+    draw_wrapped_text(draw, f"Досвід:\n{data['experience']}", font=font_text, fill="#111A94", x=200, y=330, max_width=80)
+    draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=200, y=390, max_width=80)
+    draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=200, y=450, max_width=80)
+    draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=200, y=530, max_width=80)
 
     pdf_path = f"cv_{message.from_user.id}.pdf"
     image.save(pdf_path, "PDF")
@@ -166,7 +174,7 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         file_id = doc.document.file_id
 
 
-    await add_cv(message.from_user.id, file_id)
+    await add_cv(message.from_user.id, cv_file_path=file_id) 
 
     os.remove(pdf_path)
 

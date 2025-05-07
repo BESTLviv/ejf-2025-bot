@@ -36,10 +36,11 @@ async def add_user(user_data: dict):
 async def get_user(user_id: int):
     return await users_collection.find_one({"telegram_id": user_id})
 
-async def add_cv(user_id: int, cv_text: str = None, cv_file_path: str = None):
+async def add_cv(user_id: int, cv_file_path: str = None):
+    user = await users_collection.find_one({"telegram_id": user_id})
     cv_data = {
-        "user_id": user_id,
-        "cv_text": cv_text,
+        "telegram_id": user_id,
+        "user_name": user["name"] if user else str(user_id),
         "cv_file_path": cv_file_path,
     }
     await cv_collection.insert_one(cv_data)

@@ -116,20 +116,7 @@ async def get_cvs_callback(callback: CallbackQuery):
 
     for cv in await cursor.to_list(length=None):
         user_id = cv.get("user_id")
-        cv_text = cv.get("cv_text")
         cv_file_path = cv.get("cv_file_path")
-
-        if cv_text:
-            formatted = format_cv_text(cv_text)
-            await callback.message.answer(
-                f"<b>Користувач ID:</b> <code>{user_id}</code>\n{formatted}",
-                parse_mode="HTML")
-        else:
-            await callback.message.answer(
-                f"<b>Користувач ID:</b> <code>{user_id}</code>\n"
-                f"❌ <i>Текстового CV немає</i>",
-                parse_mode="HTML"
-            )
 
         if cv_file_path:
             try:
@@ -137,20 +124,21 @@ async def get_cvs_callback(callback: CallbackQuery):
                 file_url = f"https://api.telegram.org/file/bot{callback.bot.token}/{file_info.file_path}"
 
                 await callback.message.answer(
-                    f"<b>Користувач ID:</b> <code>{user_id}</code>\n"
-                    f"📎 <b>PDF CV:</b> <a href='{file_url}'>Завантажити файл</a>",
+                    f"<b>Користувач ID:</b> <code>{cv.get('telegram_id')}</code>\n"
+                    f"<b>Ім'я користувача:</b> {cv.get('user_name')}\n"
+                    f"📎 <b>CV:</b> <a href='{file_url}'>Завантажити файл</a>",
                     parse_mode="HTML",
                     disable_web_page_preview=True)
 
             except Exception as e:
                 await callback.message.answer(
-                    f"❌ Не вдалося створити посилання на PDF CV для користувача {user_id}.\n"
+                    f"❌ Не вдалося створити посилання на CV для користувача {user_id}.\n"
                     f"Помилка: <code>{e}</code>",
                     parse_mode="HTML"
                 )
         else:
             await callback.message.answer(
-                f"❌ PDF CV відсутнє для користувача {user_id}.",
+                f"❌ CV відсутнє для користувача {user_id}.",
                 parse_mode="HTML"
             )
 
