@@ -75,23 +75,17 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
 async def ask_speciality_or_custom_university(message: types.Message, state: FSMContext):
     if message.text == "🎓 Інший":
         await message.answer("Тоді напиши, будь ласка назву свого університету:")
-        await state.set_state(Registration.university_custom)  # Новий стан для введення назви університету
+        await state.set_state(Registration.university)  
     else:
         await state.update_data(university=message.text)
         await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
         await state.set_state(Registration.speciality)
 
-@router.message(State("Registration:university_custom"))
+@router.message(Registration.university)
 async def handle_custom_university(message: types.Message, state: FSMContext):
     await state.update_data(university=message.text)  
     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
     await state.set_state(Registration.speciality)
-
-# @router.message(Registration.university)
-# async def ask_speciality(message: types.Message, state: FSMContext):
-#     await state.update_data(university=message.text)
-#     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
-#     await state.set_state(Registration.speciality)
 
 @router.message(Registration.speciality)
 async def finish_registration(message: types.Message, state: FSMContext):

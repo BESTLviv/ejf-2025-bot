@@ -6,7 +6,6 @@ from aiogram import types, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton, CallbackQuery,InputMediaPhoto
 from aiogram.types.input_file import FSInputFile
-from keyboards.cv_kb import get_cv_type_kb
 import os
 
 
@@ -96,6 +95,7 @@ def build_speaker_keyboard(selected_index: int):
 
 @router.message(F.text == "🗣️ Спікери")
 async def show_speakers(message: types.Message):
+    await message.answer("Найцінніше, що можна зробити з набутими знаннями, – це застосовувати їх і ділитися з іншими. Наші спікери готові передати свою мудрість, тож приймай її та розширюй горизонти!")
     selected_index = 0
     speaker = speakers[selected_index]
     photo = FSInputFile(speaker["photo_path"])
@@ -107,7 +107,6 @@ async def show_speakers(message: types.Message):
         reply_markup=keyboard
     )
 
-    # Збереження file_id
     file_ids[speaker["key"]] = msg.photo[-1].file_id
 
 @router.callback_query(F.data.startswith("select_speaker:"))

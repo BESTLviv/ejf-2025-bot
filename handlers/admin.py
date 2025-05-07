@@ -1,14 +1,15 @@
 from aiogram import Router, types, F
-from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from dotenv import load_dotenv
-from aiogram.types.input_file import FSInputFile 
 import os
 from aiogram.exceptions import TelegramAPIError
 import asyncio
 from utils.database import get_all_users
+from utils.database import cv_collection 
+import os
+import json
 
 load_dotenv()
 ADMIN = os.getenv("ADMIN")
@@ -88,11 +89,6 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("Розсилку скасовано.")
     await state.clear()
 
-from utils.database import cv_collection
-import os
-import aiohttp
-import json
-from config import load_config 
 
 def format_cv_text(cv_text) -> str:
     if isinstance(cv_text, str):

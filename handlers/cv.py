@@ -2,7 +2,6 @@ from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InputFile
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.filters import CommandStart
 from utils.database import get_user, add_cv
 from keyboards.cv_kb import get_cv_type_kb
 from keyboards.main_menu_kb import main_menu_kb
@@ -14,7 +13,7 @@ from aiogram.types import BufferedInputFile
 cv_router = Router()
 
 
-class CVStates(StatesGroup):
+class CVStates(StatesGroup):# клас для збору даних при заповненні cv 
     position = State()
     languages = State()
     education = State()
@@ -25,7 +24,7 @@ class CVStates(StatesGroup):
     confirmation = State()
 
 
-@cv_router.message(F.text == "📂 CV")
+@cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
     await message.answer(
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
@@ -34,7 +33,7 @@ async def start_cv_menu(message: types.Message):
     )
 
 
-@cv_router.message(F.text == "📂 Завантажити CV")
+@cv_router.message(F.text == "📂 Завантажити CV") # кнопка з клавіатури сівішок
 async def ask_cv_file(message: types.Message):
     await message.answer(
         "Завантаж своє CV у форматі PDF, і ми збережемо його для тебе!",
@@ -48,19 +47,32 @@ async def handle_cv_file(message: types.Message):
         await message.answer("❗ Це не PDF. Спробуй ще раз.")
         return
 
-    file_id = message.document.file_id
+    max_file_size = 10 * 1024 * 1024  # 10 МБ 
+    if message.document.file_size > max_file_size:
+        await message.answer("❗ Файл занадто великий. Максимальний розмір файлу — 10 МБ.")
+        return
+
+    try:
+        file_id = message.document.file_id
+        file = await message.bot.get_file(file_id)
+        await message.bot.download_file(file.file_path, timeout=30)  # Обмеження часу завантаження в 30 секунд
+    except Exception as e:
+        await message.answer("❗ Завантаження файлу зайняло занадто багато часу. Спробуй ще раз.")
+        print(f"Помилка завантаження файлу: {e}")
+        return
+
     await add_cv(message.from_user.id, cv_file_path=file_id)
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
-@cv_router.message(F.text == "📝 Створити CV")
+@cv_router.message(F.text == "📝 Створити CV") # кнопка з клавіатури сівішок
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await state.set_state(CVStates.position)
     await message.answer("Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
 
 
-@cv_router.message(CVStates.position)
+@cv_router.message(CVStates.position) # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
     await state.update_data(position=message.text)
     await state.set_state(CVStates.languages)
@@ -107,7 +119,7 @@ async def process_contacts(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     user = await get_user(message.from_user.id)
-    user_name = user.get("name", "") if user else "Невідомо"
+    user_name = user.get("name", "") if user else ""
 
     summary = (
         f"Ім'я: {user_name}\n"
@@ -155,14 +167,14 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
             draw.text((x, y), line, font=font, fill=fill)
             y += line_height 
 
-    draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=200, y=70, max_width=40)
-    draw_wrapped_text(draw, f"Очікувана посада:\n {data['position']}", font=font_text, fill="#111A94", x=200, y=120, max_width=80)
-    draw_wrapped_text(draw, f"Володіння мовами:\n{data['languages']}", font=font_text, fill="#111A94", x=200, y=210, max_width=80)
-    draw_wrapped_text(draw, f"Освіта:\n{data['education']}", font=font_text, fill="#111A94", x=200, y=270, max_width=80)
-    draw_wrapped_text(draw, f"Досвід:\n{data['experience']}", font=font_text, fill="#111A94", x=200, y=330, max_width=80)
-    draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=200, y=390, max_width=80)
-    draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=200, y=450, max_width=80)
-    draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=200, y=530, max_width=80)
+    draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=300, y=70, max_width=40)
+    draw_wrapped_text(draw, f"Бажана посада:\n {data['position']}", font=font_text, fill="#111A94", x=300, y=220, max_width=100)
+    draw_wrapped_text(draw, f"Володіння мовами:\n{data['languages']}", font=font_text, fill="#111A94", x=300, y=320, max_width=100)
+    draw_wrapped_text(draw, f"Освіта:\n{data['education']}", font=font_text, fill="#111A94", x=300, y=420, max_width=100)
+    draw_wrapped_text(draw, f"Досвід:\n{data['experience']}", font=font_text, fill="#111A94", x=300, y=520, max_width=100)
+    draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=300, y=620, max_width=100)
+    draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=300, y=720, max_width=100)
+    draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=300, y=820, max_width=100)
 
     pdf_path = f"cv_{message.from_user.id}.pdf"
     image.save(pdf_path, "PDF")
@@ -188,7 +200,7 @@ async def process_confirm_no(message: types.Message, state: FSMContext):
     await message.answer("Добре, давай спробуємо ще раз. Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
 
 
-@cv_router.message(F.text == "⬅️ Назад")
+@cv_router.message(F.text == "⬅️ Назад") # кнопка з клавіатури сівішок
 async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Повертаємось до головного меню!", reply_markup=main_menu_kb())
