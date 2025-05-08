@@ -33,7 +33,7 @@ async def start_cv_menu(message: types.Message):
     )
 
 
-@cv_router.message(F.text == "📂 Завантажити CV") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "Завантажити своє резюме") # кнопка з клавіатури сівішок
 async def ask_cv_file(message: types.Message):
     await message.answer(
         "Завантаж своє CV у форматі PDF, і ми збережемо його для тебе!",
@@ -44,12 +44,12 @@ async def ask_cv_file(message: types.Message):
 @cv_router.message(F.document)
 async def handle_cv_file(message: types.Message):
     if message.document.mime_type != "application/pdf":
-        await message.answer("❗ Це не PDF. Спробуй ще раз.")
+        await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз,використовуючи pdf формат.")
         return
 
     max_file_size = 10 * 1024 * 1024  # 10 МБ 
     if message.document.file_size > max_file_size:
-        await message.answer("❗ Файл занадто великий. Максимальний розмір файлу — 10 МБ.")
+        await message.answer("Упс🥲. Схоже, файл завеликий для завантаження. Його розмір має бути не більшим 10 МБ. Спробуй зменшити вагу файлу й надіслати ще раз!")
         return
 
     try:
@@ -57,60 +57,60 @@ async def handle_cv_file(message: types.Message):
         file = await message.bot.get_file(file_id)
         await message.bot.download_file(file.file_path, timeout=30)  # Обмеження часу завантаження в 30 секунд
     except Exception as e:
-        await message.answer("❗ Завантаження файлу зайняло занадто багато часу. Спробуй ще раз.")
-        print(f"Помилка завантаження файлу: {e}")
+        await message.answer("🕒 Файл завантажується дуже довго… Можливо, він перевищує дозволений розмір у 10 МБ. Перевір, будь ласка, і спробуй ще раз!")
         return
 
     await add_cv(message.from_user.id, cv_file_path=file_id)
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
-@cv_router.message(F.text == "📝 Створити CV") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "Створити резюме разом") # кнопка з клавіатури сівішок
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await state.set_state(CVStates.position)
-    await message.answer("Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
+    await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
 
 
 @cv_router.message(CVStates.position) # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
     await state.update_data(position=message.text)
     await state.set_state(CVStates.languages)
-    await message.answer("Які мови ви знаєте?")
+    await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
 
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
-    await message.answer("Пару слів про вас")
+    await message.answer("Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку.")
 
 @cv_router.message(CVStates.about)
 async def process_languages(message: types.Message, state: FSMContext):
     await state.update_data(about=message.text)
     await state.set_state(CVStates.education)
-    await message.answer("Ваша освіта?")
+    await message.answer("Не забуваймо і про освіту! Вкажи університет та спеціальність на якій навчаєшся. Якщо можеш похвалитись пройденими курсами, тоді обовʼязково це зроби!")
 
 
 @cv_router.message(CVStates.education)
-async def process_education(message: types.Message, state: FSMContext):
+async def process_experience(message: types.Message, state: FSMContext):
     await state.update_data(education=message.text)
-    await state.set_state(CVStates.experience)
-    await message.answer("Ваш досвід роботи?")
+    await state.set_state(CVStates.skills)
+    await message.answer("Якими навичками ти володієш. Технічні навички, інструменти, програми, а також особисті якості, які тобі допомагають у роботі.")
 
 
 @cv_router.message(CVStates.experience)
-async def process_experience(message: types.Message, state: FSMContext):
+async def process_education(message: types.Message, state: FSMContext):
     await state.update_data(experience=message.text)
-    await state.set_state(CVStates.skills)
-    await message.answer("Ваші навички?")
+    await state.set_state(CVStates.experience)
+    await message.answer("Маєш досвід роботи або практики? Якщо так - коротко опиши посаду, обов'язки та період. Якщо досвіду немає - просто напиши «НІ».")
+
 
 
 @cv_router.message(CVStates.skills)
 async def process_skills(message: types.Message, state: FSMContext):
     await state.update_data(skills=message.text)
     await state.set_state(CVStates.contacts)
-    await message.answer("Контактна інформація?")
+    await message.answer("І останнє залиш свої контактні дані! Email та номер телефону - щоб роботодавці могли з тобою зв'язатися.")
 
 
 @cv_router.message(CVStates.contacts)
@@ -148,12 +148,7 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         user = await get_user(message.from_user.id)
         user_name = user.get("name", "") if user else ""
     except Exception as e:
-        print(f"Error getting user: {e}")
         user_name = ""
-    template_path = "templates/cv_template.png"
-    if not os.path.exists(template_path):
-        await message.answer("⚠️ Шаблон CV не знайдено. Перевірте, чи файл 'cv_template.png' існує в папці 'templates'.")
-        return
 
     image = Image.open("templates/cv_template.png").convert("RGB")
     draw = ImageDraw.Draw(image)
@@ -190,17 +185,17 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
 
     os.remove(pdf_path)
 
-    await message.answer("✅ CV згенеровано!", reply_markup=main_menu_kb())
+    await message.answer("Вітаємо! Твоє резюме готове. Тепер його побачать роботодавці.", reply_markup=main_menu_kb())
     await state.clear()
 
 @cv_router.message(CVStates.confirmation, F.text.casefold() == "ні")
 async def process_confirm_no(message: types.Message, state: FSMContext):
     await state.clear()
     await state.set_state(CVStates.position)
-    await message.answer("Добре, давай спробуємо ще раз. Яка посада вас цікавить?", reply_markup=ReplyKeyboardRemove())
+    await message.answer("Гаразд, давай спробуємо ще раз. Яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
 
 
-@cv_router.message(F.text == "⬅️ Назад") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "Повернутись до блоків") # кнопка з клавіатури сівішок
 async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer("Повертаємось до головного меню!", reply_markup=main_menu_kb())
+    await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
