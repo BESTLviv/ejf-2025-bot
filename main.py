@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config import load_config
-from handlers import registration, menu, admin, broadcast, cv, start 
+from handlers import registration, menu, admin, cv, start 
 
 from middlewares.auth import AuthMiddleware
 from utils.database import get_database

@@ -15,7 +15,7 @@ def rating_keyboard():
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-@router.message(F.text == "Залишити відгук")
+@router.callback_query(F.data == "get_feedback")
 async def ask_rating(message: Message):
     await message.answer(
         "Оціни, будь ласка, подію від 1 до 5 ⭐️",

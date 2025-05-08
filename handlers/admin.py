@@ -2,14 +2,13 @@ from aiogram import Router, types, F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from dotenv import load_dotenv
-import os
 from aiogram.exceptions import TelegramAPIError
+from dotenv import load_dotenv
 import asyncio
-from utils.database import get_all_users
-from utils.database import cv_collection 
 import os
 import json
+
+from utils.database import get_all_users, cv_collection, db  # додаємо db для підключення до feedbacks
 
 load_dotenv()
 ADMIN = os.getenv("ADMIN")
@@ -25,6 +24,7 @@ def admin_inline_kb():
         inline_keyboard=[
             [InlineKeyboardButton(text="Розсилка всім користувачам", callback_data="broadcast")],
             [InlineKeyboardButton(text="Отримати всі CV користувачів", callback_data="get_cvs")],
+            [InlineKeyboardButton(text="Розсилка для відгуків", callback_data="get_feedback")],
         ]
     )
 
@@ -144,3 +144,73 @@ async def get_cvs_callback(callback: CallbackQuery):
         await callback.message.answer("❌ Жодного CV користувачів не знайдено.")
     else:
         await callback.message.answer(f"✅ Завершено. Опрацьовано {count} CV.")
+
+
+
+
+class FeedbackStates(StatesGroup):
+    waiting_for_comment = State()
+
+
+def rating_keyboard():
+    keyboard = [
+        [InlineKeyboardButton(text=f"{i} ⭐", callback_data=f"rate_{i}")] for i in range(1, 6)
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+@router.callback_query(F.data == "get_feedback")
+async def broadcast_feedback_request(callback: CallbackQuery):
+    await callback.message.answer("Розсилаю запит на фідбек всім користувачам...")
+
+    users_cursor = await get_all_users()
+    user_ids = []
+    async for user in users_cursor:
+        if user.get("registered"):  
+            user_ids.append(user["telegram_id"])
+
+    success = 0
+    fail = 0
+    for user_id in user_ids:
+        try:
+            await callback.bot.send_message(
+                user_id,
+                "Будь ласка, оціни подію від 1 до 5 ⭐️",
+                reply_markup=rating_keyboard()
+            )
+            success += 1
+        except TelegramAPIError:
+            fail += 1
+            await asyncio.sleep(0.1)
+
+    await callback.message.answer(f"✅ Запит на фідбек розіслано!\nУспішно: {success}\nПомилки: {fail}")
+
+@router.callback_query(F.data.startswith("rate_"))
+async def handle_rating(callback: CallbackQuery, state: FSMContext):
+    rating = int(callback.data.split("_")[1])
+
+    await state.update_data(rating=rating)
+
+    await callback.message.edit_text(f"Твоя оцінка: {rating} ⭐️\nТепер напиши короткий відгук ✍️")
+    await state.set_state(FeedbackStates.waiting_for_comment)
+
+@router.message(FeedbackStates.waiting_for_comment)
+async def save_feedback(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    comment = message.text
+
+    data = await state.get_data()
+    rating = data.get('rating')
+
+    feedback_collection = db["feedbacks"]
+    await feedback_collection.update_one(
+        {"telegram_id": user_id},
+        {"$set": {
+            "telegram_id": user_id,
+            "rating": rating,
+            "comment": comment
+        }},
+        upsert=True
+    )
+
+    await message.answer("Дякуємо за детальний відгук! 💙💛")
+    await state.clear()
