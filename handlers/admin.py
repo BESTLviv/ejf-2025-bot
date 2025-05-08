@@ -42,27 +42,42 @@ async def admin_message_handler(message: types.Message):
         "Привіт, адміністратор-молодчинка! Ось твої опції:",
         reply_markup=admin_inline_kb()
     )
-
 @router.callback_query(F.data == "broadcast")
 async def broadcast_callback(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Будь ласка, введіть текст повідомлення для розсилки (підтримується HTML):")
+    await callback.message.answer("Будь ласка, введіть текст повідомлення для розсилки. Якщо хочете додати фото, надішліть його разом із текстом.")
     await state.set_state(BroadcastStates.enter_broadcast_text)
 
-@router.message(BroadcastStates.enter_broadcast_text)
-async def enter_broadcast_text(message: types.Message, state: FSMContext):
-    text_to_broadcast = message.html_text  
-    await state.update_data(broadcast_text=text_to_broadcast)
 
-    await message.answer(
-        f"Ось текст вашої розсилки:\n\n{text_to_broadcast}\n\nВи підтверджуєте розсилку цього повідомлення всім користувачам?",
-        reply_markup=confirm_broadcast_kb()
-    )
+@router.message(BroadcastStates.enter_broadcast_text, F.content_type.in_({"text", "photo"}))
+async def enter_broadcast_text(message: types.Message, state: FSMContext):
+    # Зберігаємо текст повідомлення
+    text_to_broadcast = message.html_text if message.text else None
+    photo_id = message.photo[-1].file_id if message.photo else None
+
+    await state.update_data(broadcast_text=text_to_broadcast, photo_id=photo_id)
+
+    # Формуємо попередній перегляд
+    if photo_id:
+        await message.answer_photo(
+            photo_id,
+            caption=f"Ось текст вашої розсилки:\n\n{text_to_broadcast or ''}\n\nВи підтверджуєте розсилку цього повідомлення всім користувачам?",
+            reply_markup=confirm_broadcast_kb(),
+            parse_mode="HTML"
+        )
+    else:
+        await message.answer(
+            f"Ось текст вашої розсилки:\n\n{text_to_broadcast}\n\nВи підтверджуєте розсилку цього повідомлення всім користувачам?",
+            reply_markup=confirm_broadcast_kb(),
+            parse_mode="HTML"
+        )
+
     await state.set_state(BroadcastStates.confirm_broadcast)
 
 @router.callback_query(F.data == "confirm_broadcast", BroadcastStates.confirm_broadcast)
 async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     text_to_broadcast = data.get("broadcast_text")
+    photo_id = data.get("photo_id")
 
     users_cursor = await get_all_users()
     user_ids = []
@@ -74,19 +89,31 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     fail = 0
     for user_id in user_ids:
         try:
-            await callback.bot.send_message(user_id, text_to_broadcast, parse_mode="HTML")
+            if photo_id:
+                await callback.bot.send_photo(
+                    user_id,
+                    photo=photo_id,
+                    caption=text_to_broadcast,
+                    parse_mode="HTML"
+                )
+            else:
+                await callback.bot.send_message(
+                    user_id,
+                    text_to_broadcast,
+                    parse_mode="HTML"
+                )
             success += 1
-        except TelegramAPIError as e: 
+        except TelegramAPIError:
             fail += 1
-            await asyncio.sleep(0.1) 
-
+            await asyncio.sleep(0.1)
 
     await callback.message.answer(f"Розсилку завершено!\n✅ Успішно: {success}\n❌ Помилки: {fail}")
     await state.clear()
 
+
 @router.callback_query(F.data == "cancel_broadcast", BroadcastStates.confirm_broadcast)
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Розсилку скасовано.")
+    await callback.message.answer("Розсилку скасовано. Будь обережніше з кнопками")
     await state.clear()
 
 
@@ -148,19 +175,38 @@ async def get_cvs_callback(callback: CallbackQuery):
 
 
 
-class FeedbackStates(StatesGroup):
+
+
+
+class FeedbackStates(StatesGroup):# всі штуки з фідбеками
     waiting_for_comment = State()
 
 
 def rating_keyboard():
     keyboard = [
-        [InlineKeyboardButton(text=f"{i} ⭐", callback_data=f"rate_{i}")] for i in range(1, 6)
+        [InlineKeyboardButton(text=f"⭐ 1 – Не сподобалось", callback_data=1)],
+        [InlineKeyboardButton(text=f"⭐ 2 – Могло бути краще", callback_data=2)],
+        [InlineKeyboardButton(text=f"⭐ 3 – Було нормально", callback_data=3)],
+        [InlineKeyboardButton(text=f"⭐ 4 – Було круто!", callback_data=4)],
+        [InlineKeyboardButton(text=f"⭐ 5 – Неймовірно, чекаю наступний ІЯК!", callback_data=5)],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 @router.callback_query(F.data == "get_feedback")
 async def broadcast_feedback_request(callback: CallbackQuery):
-    await callback.message.answer("Розсилаю запит на фідбек всім користувачам...")
+    # Ask for confirmation first
+    confirm_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Так, розіслати", callback_data="confirm_feedback_request")],
+        [InlineKeyboardButton(text="❌ Ні, скасувати", callback_data="cancel_feedback_request")]
+    ])
+    await callback.message.answer(
+        "Ви впевнені, що хочете розіслати запит на фідбек всім користувачам?",
+        reply_markup=confirm_kb
+    )
+
+@router.callback_query(F.data == "confirm_feedback_request")
+async def send_feedback_request(callback: CallbackQuery):
+    await callback.message.answer("Розсилка запитів на фідбек користувачам...")
 
     users_cursor = await get_all_users()
     user_ids = []
@@ -174,7 +220,8 @@ async def broadcast_feedback_request(callback: CallbackQuery):
         try:
             await callback.bot.send_message(
                 user_id,
-                "Будь ласка, оціни подію від 1 до 5 ⭐️",
+                "Це були два неймовірні дні! Ми намагалися зробити <b>Інженерний Ярмарок Карʼєри</b> якомога кориснішим і цікавишим для тебе. А тепер твоя черга допомогти нам стати кращими! Оціни, будь ласка, захід від 1 до 5 📊.",
+                parse_mode="HTML",
                 reply_markup=rating_keyboard()
             )
             success += 1
@@ -184,13 +231,17 @@ async def broadcast_feedback_request(callback: CallbackQuery):
 
     await callback.message.answer(f"✅ Запит на фідбек розіслано!\nУспішно: {success}\nПомилки: {fail}")
 
+@router.callback_query(F.data == "cancel_feedback_request")
+async def cancel_feedback_request(callback: CallbackQuery):
+    await callback.message.answer("❌ Розсилку запитів на фідбек скасовано. Будь обережніше з кнопками")
+
 @router.callback_query(F.data.startswith("rate_"))
 async def handle_rating(callback: CallbackQuery, state: FSMContext):
     rating = int(callback.data.split("_")[1])
 
     await state.update_data(rating=rating)
 
-    await callback.message.edit_text(f"Твоя оцінка: {rating} ⭐️\nТепер напиши короткий відгук ✍️")
+    await callback.message.edit_text(f"🙏 Дякуємо за оцінку!\n Нам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити, адже саме твій відгук спонукає нас до розвитку!")
     await state.set_state(FeedbackStates.waiting_for_comment)
 
 @router.message(FeedbackStates.waiting_for_comment)
@@ -212,5 +263,6 @@ async def save_feedback(message: types.Message, state: FSMContext):
         upsert=True
     )
 
-    await message.answer("Дякуємо за детальний відгук! 💙💛")
+    await message.answer("Дуже дякуємо! Твої відповіді допоможуть нам рухатися у правильному напрямку.\n Хочемо нагадати, що <b>Інженерний Ярмарок Кар’єри</b> став можливим завдяки студентській організації <b>BEST Lviv</b>. Ми створюємо й інші круті події, які можуть тебе зацікавити: \n🟣 <b>BEST Training Week</b> – тиждень лекцій від спікерів;\n🔴 <b>BEST Capture The Flag</b> – командні змагання з кібербезпеки;\n🟠 <b>BEST Engineering Competition</b> – інженерні змагання;\n🟢 <b>BEST::HACKath0n</b> – 24-годинні IT-змагання;\nУсі ці заходи є <b>безкоштовними</b>, тож слідкуй за нашими соцмережами та долучайся до інших подій, які зацікавили! 🎯",
+                         parse_mode="HTML")
     await state.clear()
