@@ -36,3 +36,5 @@ typing_extensions==4.12.2
 wcwidth==0.2.13
 yarl==1.17.1
 python-dotenv
+motor
+pillow
