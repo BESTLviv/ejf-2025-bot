@@ -13,6 +13,11 @@ from aiogram.types import BufferedInputFile
 
 cv_router = Router()
 
+def is_correct_text(text):
+    contains_letters = re.search(r'[a-zA-Zа-яА-ЯіІїЇєЄґҐ]', text)
+    only_symbols = re.fullmatch(r'[\W_]+', text) 
+    return bool(contains_letters) and not only_symbols
+
 
 class CVStates(StatesGroup):# клас для збору даних при заповненні cv 
     position = State()
@@ -36,14 +41,24 @@ async def start_cv_menu(message: types.Message):
 
 @cv_router.message(F.text == "Завантажити своє резюме") # кнопка з клавіатури сівішок
 async def ask_cv_file(message: types.Message):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await message.answer(
         "Завантаж своє CV у форматі PDF, і ми збережемо його для тебе!",
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=main_menu_kb()
     )
 
 
 @cv_router.message(F.document)
 async def handle_cv_file(message: types.Message):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     if message.document.mime_type != "application/pdf":
         await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз,використовуючи pdf формат.")
         return
@@ -67,6 +82,11 @@ async def handle_cv_file(message: types.Message):
 
 @cv_router.message(F.text == "Створити резюме разом") # кнопка з клавіатури сівішок
 async def cmd_start(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.clear()
     await state.set_state(CVStates.position)
     await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
@@ -74,12 +94,22 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.position) # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(position=message.text)
     await state.set_state(CVStates.languages)
     await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
 
     VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
     text = message.text.lower()
@@ -92,36 +122,25 @@ async def process_languages(message: types.Message, state: FSMContext):
 
     if not has_native and not all_levels_raw:
         await message.answer(
-            "⚠️ Ти не вказав(-ла) рівень володіння мовами.\n"
-            "Будь ласка, напиши слово «рідна» або один із рівнів A1, A2, B1, B2, C1, C2.\n"
-            "Наприклад:\n"
-            "— українська — рідна\n"
-            "— англійська — B2"
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!\n" 
+            " Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."
         )
         return
 
     if invalid_levels:
         await message.answer(
-            f"⚠️ Виявлено неправильні рівні: {', '.join(invalid_levels)}.\n"
-            f"Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
-            "Приклад:\n"
-            "— українська — рідна\n"
-            "— англійська — B2"
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!\n" 
+            " Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."
         )
         return
 
-    # 3. Якщо нема слова «рідна» і нема жодного правильного рівня
     if not has_native and not valid_levels:
         await message.answer(
-            "⚠️ Ти не вказав(-ла) жодного коректного рівня.\n"
-            "Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
-            "Приклад:\n"
-            "— українська — рідна\n"
-            "— англійська — B2"
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!\n" 
+            " Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."
         )
         return
 
-    # Якщо все ок
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
     await message.answer(
@@ -133,6 +152,11 @@ async def process_languages(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.about)
 async def process_languages(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(about=message.text)
     await state.set_state(CVStates.education)
     await message.answer("Не забуваймо і про освіту! Вкажи університет та спеціальність на якій навчаєшся. Якщо можеш похвалитись пройденими курсами, тоді обовʼязково це зроби!")
@@ -140,6 +164,11 @@ async def process_languages(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.education)
 async def process_experience(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(education=message.text)
     await state.set_state(CVStates.skills)
     await message.answer("Якими навичками ти володієш. Технічні навички, інструменти, програми, а також особисті якості, які тобі допомагають у роботі.")
@@ -147,6 +176,11 @@ async def process_experience(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.skills)
 async def process_education(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(skills=message.text)
     await state.set_state(CVStates.experience)
     await message.answer("Маєш досвід роботи або практики? Якщо так, коротко опиши посаду, обов'язки та період. Якщо досвіду немає — просто напиши «НІ».")
@@ -155,6 +189,11 @@ async def process_education(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.experience)
 async def process_skills(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(experience=message.text)
     await state.set_state(CVStates.contacts)
     await message.answer("І останнє залиш свої контактні дані! Email та номер телефону, щоб роботодавці могли з тобою зв'язатися.")
@@ -162,6 +201,11 @@ async def process_skills(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.contacts)
 async def process_contacts(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(contacts=message.text)
     data = await state.get_data()
 
@@ -237,6 +281,11 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.confirmation, F.text.casefold() == "ні")
 async def process_confirm_no(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.clear()
     await state.set_state(CVStates.position)
     await message.answer("Гаразд, давай спробуємо ще раз. Яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
