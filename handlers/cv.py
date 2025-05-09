@@ -102,7 +102,7 @@ async def process_experience(message: types.Message, state: FSMContext):
 async def process_education(message: types.Message, state: FSMContext):
     await state.update_data(skills=message.text)
     await state.set_state(CVStates.experience)
-    await message.answer("Маєш досвід роботи або практики? Якщо так - коротко опиши посаду, обов'язки та період. Якщо досвіду немає - просто напиши «НІ».")
+    await message.answer("Маєш досвід роботи або практики? Якщо так, коротко опиши посаду, обов'язки та період. Якщо досвіду немає — просто напиши «НІ».")
 
 
 
@@ -110,7 +110,7 @@ async def process_education(message: types.Message, state: FSMContext):
 async def process_skills(message: types.Message, state: FSMContext):
     await state.update_data(experience=message.text)
     await state.set_state(CVStates.contacts)
-    await message.answer("І останнє залиш свої контактні дані! Email та номер телефону - щоб роботодавці могли з тобою зв'язатися.")
+    await message.answer("І останнє залиш свої контактні дані! Email та номер телефону, щоб роботодавці могли з тобою зв'язатися.")
 
 
 @cv_router.message(CVStates.contacts)
@@ -129,7 +129,7 @@ async def process_contacts(message: types.Message, state: FSMContext):
         f"Досвід: {data['experience']}\n"
         f"Навички: {data['skills']}\n"
         f"Контакти: {data['contacts']}\n\n"
-        "Все вірно?"
+        "Все правильно?"
     )
 
     keyboard = ReplyKeyboardMarkup(
