@@ -98,17 +98,17 @@ async def process_experience(message: types.Message, state: FSMContext):
     await message.answer("Якими навичками ти володієш. Технічні навички, інструменти, програми, а також особисті якості, які тобі допомагають у роботі.")
 
 
-@cv_router.message(CVStates.experience)
+@cv_router.message(CVStates.skills)
 async def process_education(message: types.Message, state: FSMContext):
-    await state.update_data(experience=message.text)
+    await state.update_data(skills=message.text)
     await state.set_state(CVStates.experience)
     await message.answer("Маєш досвід роботи або практики? Якщо так - коротко опиши посаду, обов'язки та період. Якщо досвіду немає - просто напиши «НІ».")
 
 
 
-@cv_router.message(CVStates.skills)
+@cv_router.message(CVStates.experience)
 async def process_skills(message: types.Message, state: FSMContext):
-    await state.update_data(skills=message.text)
+    await state.update_data(experience=message.text)
     await state.set_state(CVStates.contacts)
     await message.answer("І останнє залиш свої контактні дані! Email та номер телефону - щоб роботодавці могли з тобою зв'язатися.")
 
