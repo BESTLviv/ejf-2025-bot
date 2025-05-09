@@ -78,23 +78,22 @@ async def process_position(message: types.Message, state: FSMContext):
     await state.set_state(CVStates.languages)
     await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
 
-
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
 
     VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
     text = message.text.lower()
-    levels_found = re.findall(r'\b([a-cA-C][1-2])\b', message.text)
-    levels_found_upper = [level.upper() for level in levels_found]
+    all_levels_raw = re.findall(r'\b([a-zA-Z][0-9])\b', message.text)
+    all_levels_upper = [level.upper() for level in all_levels_raw]
 
     has_native = "рідна" in text
-    has_valid_level = any(level in VALID_LEVELS for level in levels_found_upper)
-    invalid_levels = [level for level in levels_found_upper if level not in VALID_LEVELS]
+    valid_levels = [level for level in all_levels_upper if level in VALID_LEVELS]
+    invalid_levels = [level for level in all_levels_upper if level not in VALID_LEVELS]
 
-    if not has_native and not levels_found:
+    if not has_native and not all_levels_raw:
         await message.answer(
-            "⚠️ Схоже, що ти не вказав(-ла) рівень володіння мовами.\n"
-            "Будь ласка, використовуй або слово «рідна», або рівні A1, A2, B1, B2, C1, C2.\n"
+            "⚠️ Ти не вказав(-ла) рівень володіння мовами.\n"
+            "Будь ласка, напиши слово «рідна» або один із рівнів A1, A2, B1, B2, C1, C2.\n"
             "Наприклад:\n"
             "— українська — рідна\n"
             "— англійська — B2"
@@ -105,29 +104,30 @@ async def process_languages(message: types.Message, state: FSMContext):
         await message.answer(
             f"⚠️ Виявлено неправильні рівні: {', '.join(invalid_levels)}.\n"
             f"Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
-            "Наприклад:\n"
+            "Приклад:\n"
             "— українська — рідна\n"
             "— англійська — B2"
         )
         return
 
-    if not has_native and not has_valid_level:
-        # Якщо нема слова "рідна" і нема жодного правильного рівня
+    # 3. Якщо нема слова «рідна» і нема жодного правильного рівня
+    if not has_native and not valid_levels:
         await message.answer(
-            "⚠️ Ти вказав(-ла) рівень, але він некоректний.\n"
+            "⚠️ Ти не вказав(-ла) жодного коректного рівня.\n"
             "Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
-            "Наприклад:\n"
+            "Приклад:\n"
             "— українська — рідна\n"
             "— англійська — B2"
         )
         return
 
-    # Якщо все добре
+    # Якщо все ок
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
     await message.answer(
         "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."
     )
+
 
 
 
