@@ -84,8 +84,7 @@ async def process_languages(message: types.Message, state: FSMContext):
     VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
 
     text = message.text
-    levels_found = re.findall(r'\b([A-Za-z][1-3])\b', text)
-
+    levels_found = re.findall(r'\b[AaBbCc][1-2]\b', text) 
     levels_found = [level.upper() for level in levels_found]
     invalid_levels = [level for level in levels_found if level not in VALID_LEVELS]
 
