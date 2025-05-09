@@ -80,9 +80,28 @@ async def process_position(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
+    import re
+    VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
+
+    text = message.text
+    levels_found = re.findall(r'\b([A-Ca-c][1-3])\b', text)
+
+    levels_found = [level.upper() for level in levels_found]
+    invalid_levels = [level for level in levels_found if level not in VALID_LEVELS]
+
+    if invalid_levels:
+        await message.answer(
+            f"⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!\n"
+            f"Будь ласка, використовуй лише ці рівні володіння мовами: A1, A2, B1, B2, C1, C2.\n"
+        )
+        await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
+        return
+
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
-    await message.answer("Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку.")
+    await message.answer(
+        "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."
+    )
 
 @cv_router.message(CVStates.about)
 async def process_languages(message: types.Message, state: FSMContext):
