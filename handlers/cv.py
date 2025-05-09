@@ -7,6 +7,7 @@ from keyboards.cv_kb import get_cv_type_kb
 from keyboards.main_menu_kb import main_menu_kb
 from PIL import Image, ImageDraw, ImageFont
 import os
+import re
 import textwrap
 from aiogram.types import BufferedInputFile
 
@@ -80,18 +81,17 @@ async def process_position(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
-    import re
 
     VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
     text = message.text.lower()
-
-    has_native = "рідна" in text
-    levels_found = re.findall(r'\b[a-cA-C][1-2]\b', text) 
+    levels_found = re.findall(r'\b([a-cA-C][1-2])\b', message.text)
     levels_found_upper = [level.upper() for level in levels_found]
 
+    has_native = "рідна" in text
+    has_valid_level = any(level in VALID_LEVELS for level in levels_found_upper)
     invalid_levels = [level for level in levels_found_upper if level not in VALID_LEVELS]
 
-    if not has_native and not levels_found_upper:
+    if not has_native and not levels_found:
         await message.answer(
             "⚠️ Схоже, що ти не вказав(-ла) рівень володіння мовами.\n"
             "Будь ласка, використовуй або слово «рідна», або рівні A1, A2, B1, B2, C1, C2.\n"
@@ -111,12 +111,24 @@ async def process_languages(message: types.Message, state: FSMContext):
         )
         return
 
-    # Якщо перевірка успішна — зберігаємо дані
+    if not has_native and not has_valid_level:
+        # Якщо нема слова "рідна" і нема жодного правильного рівня
+        await message.answer(
+            "⚠️ Ти вказав(-ла) рівень, але він некоректний.\n"
+            "Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
+            "Наприклад:\n"
+            "— українська — рідна\n"
+            "— англійська — B2"
+        )
+        return
+
+    # Якщо все добре
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
     await message.answer(
         "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."
     )
+
 
 
 @cv_router.message(CVStates.about)
