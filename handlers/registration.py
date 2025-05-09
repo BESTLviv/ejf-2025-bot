@@ -5,7 +5,7 @@ from keyboards.registration_kb import get_course_kb, get_university_kb
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from keyboards.main_menu_kb import main_menu_kb 
 from utils.database import save_user_data
-
+import re
 router = Router()
 
 class Registration(StatesGroup):
@@ -14,8 +14,19 @@ class Registration(StatesGroup):
     university = State()
     speciality = State()
 
+def is_correct_text(text):
+    contains_letters = re.search(r'[a-zA-Zа-яА-ЯіІїЇєЄґҐ]', text)
+    only_symbols = re.fullmatch(r'[\W_]+', text) 
+    return bool(contains_letters) and not only_symbols
+
+
 @router.message(F.text == "Старт 🚀")
 async def start_registration(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="Звісно!")]],
         resize_keyboard=True,
@@ -30,6 +41,11 @@ async def start_registration(message: types.Message, state: FSMContext):
 
 @router.message(F.text == "Звісно!")
 async def ask_name(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await message.answer(
         "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌 Максим Сеньків (до речі, знайомся це наш головний організатор!)",
         parse_mode="HTML"
@@ -39,6 +55,11 @@ async def ask_name(message: types.Message, state: FSMContext):
 
 @router.message(Registration.name)
 async def validate_name(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     parts = message.text.strip().split()
     if len(parts) < 2 or len(parts) > 2:
         await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
@@ -50,6 +71,11 @@ async def validate_name(message: types.Message, state: FSMContext):
 
 @router.message(Registration.course)
 async def ask_university_or_finish(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(course=message.text)
     
     if message.text in ["🔹 Не навчаюсь", "🔹 Ще у школі/коледжі"]:
@@ -73,6 +99,11 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
 
 @router.message(Registration.university)
 async def ask_speciality_or_custom_university(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     if message.text == "🎓 Інший":
         await message.answer("Тоді напиши, будь ласка назву свого університету:", reply_markup=ReplyKeyboardRemove())
         await state.set_state(Registration.university)  
@@ -83,12 +114,22 @@ async def ask_speciality_or_custom_university(message: types.Message, state: FSM
 
 @router.message(Registration.university)
 async def handle_custom_university(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(university=message.text)  
     await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
     await state.set_state(Registration.speciality)
 
 @router.message(Registration.speciality)
 async def finish_registration(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
     await state.update_data(speciality=message.text)
     data = await state.get_data()
 
