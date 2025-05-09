@@ -81,26 +81,43 @@ async def process_position(message: types.Message, state: FSMContext):
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
     import re
-    VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
 
-    text = message.text
-    levels_found = re.findall(r'\b[AaBbCc][1-2]\b', text) 
-    levels_found = [level.upper() for level in levels_found]
-    invalid_levels = [level for level in levels_found if level not in VALID_LEVELS]
+    VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
+    text = message.text.lower()
+
+    has_native = "рідна" in text
+    levels_found = re.findall(r'\b[a-cA-C][1-2]\b', text) 
+    levels_found_upper = [level.upper() for level in levels_found]
+
+    invalid_levels = [level for level in levels_found_upper if level not in VALID_LEVELS]
+
+    if not has_native and not levels_found_upper:
+        await message.answer(
+            "⚠️ Схоже, що ти не вказав(-ла) рівень володіння мовами.\n"
+            "Будь ласка, використовуй або слово «рідна», або рівні A1, A2, B1, B2, C1, C2.\n"
+            "Наприклад:\n"
+            "— українська — рідна\n"
+            "— англійська — B2"
+        )
+        return
 
     if invalid_levels:
         await message.answer(
-            f"⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!\n"
-            f"Будь ласка, використовуй лише ці рівні володіння мовами: A1, A2, B1, B2, C1, C2.\n"
+            f"⚠️ Виявлено неправильні рівні: {', '.join(invalid_levels)}.\n"
+            f"Будь ласка, використовуй лише ці рівні: A1, A2, B1, B2, C1, C2 або слово «рідна».\n"
+            "Наприклад:\n"
+            "— українська — рідна\n"
+            "— англійська — B2"
         )
-        await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
         return
 
+    # Якщо перевірка успішна — зберігаємо дані
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
     await message.answer(
         "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."
     )
+
 
 @cv_router.message(CVStates.about)
 async def process_languages(message: types.Message, state: FSMContext):
