@@ -111,7 +111,7 @@ async def process_languages(message: types.Message, state: FSMContext):
         )
         return
 
-    VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2"}
+    VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2","А1", "А2", "В1", "В2", "С1", "С2"}
     text = message.text.lower()
     all_levels_raw = re.findall(r'\b([a-zA-Z][0-9])\b', message.text)
     all_levels_upper = [level.upper() for level in all_levels_raw]
