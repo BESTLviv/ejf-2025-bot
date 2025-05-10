@@ -10,6 +10,7 @@ import os
 import re
 import textwrap
 from aiogram.types import BufferedInputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.database import get_cv
 
 
@@ -91,48 +92,10 @@ async def handle_cv_file(message: types.Message):
     )
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
-# @cv_router.message(F.document)
-# async def handle_cv_file(message: types.Message):
-#     if not is_correct_text(message.text):
-#         await message.answer(
-#             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
-#         )
-#         return
-#     if message.document.mime_type != "application/pdf":
-#         await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз,використовуючи pdf формат.")
-#         return
-
-#     max_file_size = 10 * 1024 * 1024  # 10 МБ 
-#     if message.document.file_size > max_file_size:
-#         await message.answer("Упс🥲. Схоже, файл завеликий для завантаження. Його розмір має бути не більшим 10 МБ. Спробуй зменшити вагу файлу й надіслати ще раз!")
-#         return
-
-#     try:
-#         file_id = message.document.file_id
-#         file = await message.bot.get_file(file_id)
-#         await message.bot.download_file(file.file_path, timeout=30)  # Обмеження часу завантаження в 30 секунд
-#     except Exception as e:
-#         await message.answer("🕒 Файл завантажується дуже довго… Можливо, він перевищує дозволений розмір у 10 МБ. Перевір, будь ласка, і спробуй ще раз!")
-#         return
-
-#     await add_cv(
-#         user_id=message.from_user.id,
-#         cv_file_path=file_id,
-#         position='',
-#         languages='',
-#         education='',
-#         experience='',
-#         skills='',
-#         about='',
-#         contacts=''
-#     )    
-#     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
-
-
 @cv_router.message(F.text == "⚡️ Створити резюме разом")  # кнопка з клавіатури
 async def cmd_start(message: types.Message, state: FSMContext):
     existing_cv = await get_cv(message.from_user.id)
-    has_cv_data = existing_cv and all(existing_cv.get(field) for field in ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts'])
+    has_cv_data = existing_cv and all(existing_cv.get(field) for field in ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts', 'cv_file_path'])
     if has_cv_data:
         await message.answer(
             "Бачимо, що ти вже створив резюме, то що чемпіоне, не зупиняєшся на одному?",
@@ -398,6 +361,7 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
         )
         await message.answer(summary, reply_markup=change_cv_type_kb())
 
+#==================================================================================================================================
 
 @cv_router.callback_query(F.data == "edit_position")
 async def edit_position(callback: types.CallbackQuery, state: FSMContext):
@@ -405,53 +369,409 @@ async def edit_position(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(CVStates.position)
     await callback.answer()
 
-
 @cv_router.callback_query(F.data == "edit_languages")
 async def edit_languages(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нові мови та рівень володіння:")
+    await callback.message.answer("Вкажи нові мови:")
     await state.set_state(CVStates.languages)
     await callback.answer()
-
-
 @cv_router.callback_query(F.data == "edit_education")
 async def edit_education(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нову інформацію про освіту:")
+    await callback.message.answer("Вкажи нову освіту:")
     await state.set_state(CVStates.education)
-    await callback.answer()
-
-
+    await callback.answer() 
 @cv_router.callback_query(F.data == "edit_experience")
 async def edit_experience(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи новий досвід роботи:")
+    await callback.message.answer("Вкажи новий досвід:")
     await state.set_state(CVStates.experience)
     await callback.answer()
-
-
-@cv_router.callback_query(F.data == "edit_skills")
+@cv_router.callback_query(F.data == "edit_skills")  
 async def edit_skills(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("Вкажи нові навички:")
     await state.set_state(CVStates.skills)
     await callback.answer()
-
-
+@cv_router.callback_query(F.data == "edit_contacts")
+async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нові контакти:")
+    await state.set_state(CVStates.contacts)
+    await callback.answer()
 @cv_router.callback_query(F.data == "edit_about")
 async def edit_about(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Розкажи нову інформацію про себе:")
+    await callback.message.answer("Вкажи нову інформацію про себе:")
     await state.set_state(CVStates.about)
     await callback.answer()
 
+@cv_router.message(CVStates.position)
+async def update_position(message: types.Message, state: FSMContext):
+    # Оновлюємо дані в стані FSM
+    await state.update_data(position=message.text)
+    data = await state.get_data()
 
-@cv_router.callback_query(F.data == "edit_contacts")
-async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нові контактні дані:")
-    await state.set_state(CVStates.contacts)
-    await callback.answer()
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data['position'],
+        languages=data.get('languages', ''),
+        education=data.get('education', ''),
+        experience=data.get('experience', ''),
+        skills=data.get('skills', ''),
+        about=data.get('about', ''),
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data['position']}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+    await state.set_state(CVStates.confirmation)
+
+@cv_router.message(CVStates.languages)
+async def update_languages(message: types.Message, state: FSMContext):
+    # Оновлюємо дані в стані FSM
+    await state.update_data(languages=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data['languages'],
+        education=data.get('education', ''),
+        experience=data.get('experience', ''),
+        skills=data.get('skills', ''),
+        about=data.get('about', ''),
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data['languages']}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+
+@cv_router.message(CVStates.education)
+async def update_education(message: types.Message, state: FSMContext):
+    # Оновлюємо дані в стані FSM
+    await state.update_data(education=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data.get('languages', ''),
+        education=data['education'],
+        experience=data.get('experience', ''),
+        skills=data.get('skills', ''),
+        about=data.get('about', ''),
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data['education']}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+
+@cv_router.message(CVStates.experience)
+async def update_experience(message: types.Message, state: FSMContext):
+    # Оновлюємо дані в стані FSM
+    await state.update_data(experience=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data.get('languages', ''),
+        education=data.get('education', ''),
+        experience=data['experience'],
+        skills=data.get('skills', ''),
+        about=data.get('about', ''),
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data['experience']}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+
+@cv_router.message(CVStates.skills)
+async def update_skills(message: types.Message, state: FSMContext): 
+    # Оновлюємо дані в стані FSM
+    await state.update_data(skills=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data.get('languages', ''),
+        education=data.get('education', ''),
+        experience=data.get('experience', ''),
+        skills=data['skills'],
+        about=data.get('about', ''),
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data['skills']}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)    
+
+@cv_router.message(CVStates.about)
+async def update_about(message: types.Message, state: FSMContext):  
+    # Оновлюємо дані в стані FSM
+    await state.update_data(about=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data.get('languages', ''),
+        education=data.get('education', ''),
+        experience=data.get('experience', ''),
+        skills=data.get('skills', ''),
+        about=data['about'],
+        contacts=data.get('contacts', '')
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data['about']}\n"
+        f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+
+@cv_router.message(CVStates.contacts)
+async def update_contacts(message: types.Message, state: FSMContext):
+    # Оновлюємо дані в стані FSM
+    await state.update_data(contacts=message.text)
+    data = await state.get_data()
+
+    # Оновлюємо дані в базі
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=data.get("cv_file_path", ""),
+        position=data.get('position', ''),
+        languages=data.get('languages', ''),
+        education=data.get('education', ''),
+        experience=data.get('experience', ''),
+        skills=data.get('skills', ''),
+        about=data.get('about', ''),
+        contacts=data['contacts']
+    )
+
+    # Формуємо оновлене резюме
+    user = await get_user(message.from_user.id)
+    user_name = user.get("name", "") if user else ""
+    summary = (
+        f"Ім'я: {user_name}\n"
+        f"Посада: {data.get('position', 'Не вказано')}\n"
+        f"Мови: {data.get('languages', 'Не вказано')}\n"
+        f"Освіта: {data.get('education', 'Не вказано')}\n"
+        f"Досвід: {data.get('experience', 'Не вказано')}\n"
+        f"Навички: {data.get('skills', 'Не вказано')}\n"
+        f"Про кандидата: {data.get('about', 'Не вказано')}\n"
+        f"Контакти: {data['contacts']}\n\n"
+        "Все правильно?"
+    )
+
+    # Інлайн-клавіатура для підтвердження
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_update")],
+            [InlineKeyboardButton(text="❌ Редагувати далі", callback_data="edit_more")]
+        ]
+    )
+
+    await message.answer(summary, reply_markup=keyboard)
+
+@cv_router.message(CVStates.confirmation, F.text.casefold() == "так")
 
 
-@cv_router.callback_query(F.data == "refill_cv")
-async def refill_cv(callback: types.CallbackQuery, state: FSMContext):
+
+
+
+
+@cv_router.callback_query(F.data == "confirm_update")
+async def confirm_update(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    user = await get_user(callback.from_user.id)
+    user_name = user.get("name", "") if user else ""
+
+    # Генерація PDF
+    image = Image.open("templates/cv_template.png").convert("RGB")
+    draw = ImageDraw.Draw(image)
+    font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 14)
+    font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 36)
+
+    def draw_wrapped_text(draw, text, font, fill, x, y, max_width):
+        lines = textwrap.wrap(text, width=max_width)
+        line_height = font.getbbox("A")[1]
+        for line in lines:
+            draw.text((x, y), line, font=font, fill=fill)
+            y += line_height
+
+    draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=300, y=70, max_width=40)
+    draw_wrapped_text(draw, f"Бажана посада:\n {data['position']}", font=font_text, fill="#111A94", x=300, y=220, max_width=100)
+    draw_wrapped_text(draw, f"Володіння мовами:\n{data['languages']}", font=font_text, fill="#111A94", x=300, y=320, max_width=100)
+    draw_wrapped_text(draw, f"Освіта:\n{data['education']}", font=font_text, fill="#111A94", x=300, y=420, max_width=100)
+    draw_wrapped_text(draw, f"Досвід:\n{data['experience']}", font=font_text, fill="#111A94", x=300, y=520, max_width=100)
+    draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=300, y=620, max_width=100)
+    draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=300, y=720, max_width=100)
+    draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=300, y=820, max_width=100)
+
+    pdf_path = f"cv_{callback.from_user.id}.pdf"
+    image.save(pdf_path, "PDF")
+
+    with open(pdf_path, "rb") as pdf_file:
+        file_bytes = pdf_file.read()
+        document = BufferedInputFile(file=file_bytes, filename=f"CV_{callback.from_user.id}.pdf")
+        doc = await callback.message.answer_document(document)
+        file_id = doc.document.file_id
+
+    # Оновлення бази даних
+    await add_cv(
+        user_id=callback.from_user.id,
+        cv_file_path=file_id,
+        position=data['position'],
+        languages=data['languages'],
+        education=data['education'],
+        experience=data['experience'],
+        skills=data['skills'],
+        about=data['about'],
+        contacts=data['contacts']
+    )
+
+    os.remove(pdf_path)
+    await callback.message.answer("✅ Нове CV створено та збережено!", reply_markup=main_menu_kb())
     await state.clear()
-    await state.set_state(CVStates.position)
-    await callback.message.answer("Заповнюємо CV заново. Почнемо з бажаної посади:")
     await callback.answer()
 
+@cv_router.callback_query(F.data == "edit_more")
+async def edit_more(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Обери, яке поле ти хочеш змінити:", reply_markup=change_cv_type_kb())
+    await callback.answer()
