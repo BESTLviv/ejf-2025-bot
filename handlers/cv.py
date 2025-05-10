@@ -55,24 +55,21 @@ async def ask_cv_file(message: types.Message):
         reply_markup=main_menu_kb()
     )
 
-
 @cv_router.message(F.document)
 async def handle_cv_file(message: types.Message):
-    if not is_correct_text(message.text):
-        await message.answer(
-            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
-        )
-        return
+    # Перевірка формату файлу
     if message.document.mime_type != "application/pdf":
-        await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз,використовуючи pdf формат.")
+        await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз, використовуючи PDF формат.")
         return
 
-    max_file_size = 10 * 1024 * 1024  # 10 МБ 
+    # Перевірка розміру файлу
+    max_file_size = 10 * 1024 * 1024  # 10 МБ
     if message.document.file_size > max_file_size:
-        await message.answer("Упс🥲. Схоже, файл завеликий для завантаження. Його розмір має бути не більшим 10 МБ. Спробуй зменшити вагу файлу й надіслати ще раз!")
+        await message.answer("Упс🥲. Схоже, файл завеликий для завантаження. Його розмір має бути не більшим за 10 МБ. Спробуй зменшити вагу файлу й надіслати ще раз!")
         return
 
     try:
+        # Завантаження файлу
         file_id = message.document.file_id
         file = await message.bot.get_file(file_id)
         await message.bot.download_file(file.file_path, timeout=30)  # Обмеження часу завантаження в 30 секунд
@@ -80,6 +77,7 @@ async def handle_cv_file(message: types.Message):
         await message.answer("🕒 Файл завантажується дуже довго… Можливо, він перевищує дозволений розмір у 10 МБ. Перевір, будь ласка, і спробуй ще раз!")
         return
 
+    # Збереження CV у базу даних
     await add_cv(
         user_id=message.from_user.id,
         cv_file_path=file_id,
@@ -90,8 +88,45 @@ async def handle_cv_file(message: types.Message):
         skills='',
         about='',
         contacts=''
-    )    
+    )
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
+
+# @cv_router.message(F.document)
+# async def handle_cv_file(message: types.Message):
+#     if not is_correct_text(message.text):
+#         await message.answer(
+#             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+#         )
+#         return
+#     if message.document.mime_type != "application/pdf":
+#         await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз,використовуючи pdf формат.")
+#         return
+
+#     max_file_size = 10 * 1024 * 1024  # 10 МБ 
+#     if message.document.file_size > max_file_size:
+#         await message.answer("Упс🥲. Схоже, файл завеликий для завантаження. Його розмір має бути не більшим 10 МБ. Спробуй зменшити вагу файлу й надіслати ще раз!")
+#         return
+
+#     try:
+#         file_id = message.document.file_id
+#         file = await message.bot.get_file(file_id)
+#         await message.bot.download_file(file.file_path, timeout=30)  # Обмеження часу завантаження в 30 секунд
+#     except Exception as e:
+#         await message.answer("🕒 Файл завантажується дуже довго… Можливо, він перевищує дозволений розмір у 10 МБ. Перевір, будь ласка, і спробуй ще раз!")
+#         return
+
+#     await add_cv(
+#         user_id=message.from_user.id,
+#         cv_file_path=file_id,
+#         position='',
+#         languages='',
+#         education='',
+#         experience='',
+#         skills='',
+#         about='',
+#         contacts=''
+#     )    
+#     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
 @cv_router.message(F.text == "⚡️ Створити резюме разом")  # кнопка з клавіатури
