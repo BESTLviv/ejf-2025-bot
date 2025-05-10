@@ -11,8 +11,6 @@ import re
 import textwrap
 from aiogram.types import BufferedInputFile
 from utils.database import get_cv
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 
 
 
@@ -281,12 +279,12 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         user_name = "_".join(name_parts) if len(name_parts) > 0 else ""
     except Exception as e:
         user_name = ""
-    pdf_path = f"cv_{user_name}.pdf"
+    pdf_path = f"cv{user_name}.pdf"
     image.save(pdf_path, "PDF")
 
     with open(pdf_path, "rb") as pdf_file:
         file_bytes = pdf_file.read()
-        document = BufferedInputFile(file=file_bytes, filename=f"CV_{user_name}.pdf", replymarkup=ReplyKeyboardRemove)
+        document = BufferedInputFile(file=file_bytes, filename=f"CV_{user_name}.pdf")
         doc = await message.answer_document(document)
         file_id = doc.document.file_id
 
@@ -303,6 +301,7 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         contacts=data['contacts']
     )
     os.remove(pdf_path)
+
     await message.answer("Вітаємо! Твоє резюме готове. Тепер його побачать роботодавці.", reply_markup=main_menu_kb())
     await state.clear()
 
@@ -325,198 +324,34 @@ async def back_to_menu(message: types.Message, state: FSMContext):
 
 #==================================================================================================================================
 
-# @cv_router.message(F.text == "✏️ Повернутись до блоків" ) # кнопка з клавіатури якщо сівішка вже є
-# async def back_to_menu(message: types.Message, state: FSMContext):
-#     await state.clear()
-#     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+@cv_router.message(F.text == "✏️ Повернутись до блоків" ) # кнопка з клавіатури якщо сівішка вже є
+async def back_to_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
 
 
-# @cv_router.message(F.text == "✏️ Редагувати попередній варіант") # кнопка з клавіатури якщо сівішка вже є
-# async def change_existing_cv(message: types.Message, state: FSMContext):
-#     await message.answer("Гаразд, зараз на екрані ти бачиш всю інфрмацію з твого CV\n\n Обирай яку з відповідей ти хочеш змінити або заповнюй CV заново!")
-#     await state.clear()
-#     try:
-#         user = await get_user(message.from_user.id)
-#         user_name = user.get("name", "") if user else ""
-#     except Exception as e:
-#         user_name = ""
-#     cv_data = await get_cv(message.from_user.id)
-#     if cv_data:
-#         summary = (
-#             f"Ім'я:{user_name}\n"
-#             f"Посада: {cv_data['position']}\n"
-#             f"Мови: {cv_data['languages']}\n"
-#             f"Освіта: {cv_data['education']}\n"
-#             f"Досвід: {cv_data['experience']}\n"
-#             f"Навички: {cv_data['skills']}\n"
-#             f"Про кандидата: {cv_data['about']}\n"
-#             f"Контакти: {cv_data['contacts']}"
-#         )
-#         await message.answer(summary, reply_markup=change_cv_type_kb())
-
-# def confirm_cv_creation_kb():
-#     return InlineKeyboardMarkup(
-#         inline_keyboard=[
-#             [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_new_cv")],
-#             [InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_new_cv")]
-#         ]
-#     )
-
-# async def send_updated_cv_summary(callback: types.CallbackQuery, state: FSMContext):
-#     data = await state.get_data()
-#     user = await get_user(callback.from_user.id)
-#     user_name = user.get("name", "") if user else ""
-#     summary = (
-#         f"Ім'я: {user_name}\n"
-#         f"Посада: {data.get('position', 'Не вказано')}\n"
-#         f"Мови: {data.get('languages', 'Не вказано')}\n"
-#         f"Освіта: {data.get('education', 'Не вказано')}\n"
-#         f"Досвід: {data.get('experience', 'Не вказано')}\n"
-#         f"Навички: {data.get('skills', 'Не вказано')}\n"
-#         f"Про кандидата: {data.get('about', 'Не вказано')}\n"
-#         f"Контакти: {data.get('contacts', 'Не вказано')}\n\n"
-#         "Підтвердити створення нового CV?"
-#     )
-
-#     await callback.message.answer(summary, reply_markup=confirm_cv_creation_kb())
-#     await callback.answer()
-
-# # Обробники для редагування полів
-# @cv_router.callback_query(F.data == "edit_position")
-# async def edit_position(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи нову бажану посаду:")
-#     await state.set_state(CVStates.position)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.position)
-# async def update_position(message: types.Message, state: FSMContext):
-#     await state.update_data(position=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_languages")
-# async def edit_languages(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи нові мови та рівень володіння:")
-#     await state.set_state(CVStates.languages)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.languages)
-# async def update_languages(message: types.Message, state: FSMContext):
-#     await state.update_data(languages=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_education")
-# async def edit_education(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи нову інформацію про освіту:")
-#     await state.set_state(CVStates.education)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.education)
-# async def update_education(message: types.Message, state: FSMContext):
-#     await state.update_data(education=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_experience")
-# async def edit_experience(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи новий досвід роботи:")
-#     await state.set_state(CVStates.experience)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.experience)
-# async def update_experience(message: types.Message, state: FSMContext):
-#     await state.update_data(experience=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_skills")
-# async def edit_skills(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи нові навички:")
-#     await state.set_state(CVStates.skills)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.skills)
-# async def update_skills(message: types.Message, state: FSMContext):
-#     await state.update_data(skills=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_about")
-# async def edit_about(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Розкажи нову інформацію про себе:")
-#     await state.set_state(CVStates.about)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.about)
-# async def update_about(message: types.Message, state: FSMContext):
-#     await state.update_data(about=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# @cv_router.callback_query(F.data == "edit_contacts")
-# async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("Вкажи нові контактні дані:")
-#     await state.set_state(CVStates.contacts)
-#     await callback.answer()
-
-# @cv_router.message(CVStates.contacts)
-# async def update_contacts(message: types.Message, state: FSMContext):
-#     await state.update_data(contacts=message.text)
-#     await send_updated_cv_summary(message, state)
-
-# # Обробник для підтвердження створення нового CV
-# @cv_router.callback_query(F.data == "confirm_new_cv")
-# async def confirm_new_cv(callback: types.CallbackQuery, state: FSMContext):
-#     data = await state.get_data()
-#     user = await get_user(callback.from_user.id)
-#     user_name = user.get("name", "") if user else ""
-
-#     # Генерація нового CV
-#     image = Image.open("templates/cv_template.png").convert("RGB")
-#     draw = ImageDraw.Draw(image)
-#     font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 14)
-#     font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 36)
-
-#     def draw_wrapped_text(draw, text, font, fill, x, y, max_width):
-#         lines = textwrap.wrap(text, width=max_width)
-#         line_height = font.getbbox("A")[1]
-#         for line in lines:
-#             draw.text((x, y), line, font=font, fill=fill)
-#             y += line_height
-
-#     draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=300, y=70, max_width=40)
-#     draw_wrapped_text(draw, f"Бажана посада:\n {data['position']}", font=font_text, fill="#111A94", x=300, y=220, max_width=100)
-#     draw_wrapped_text(draw, f"Володіння мовами:\n{data['languages']}", font=font_text, fill="#111A94", x=300, y=320, max_width=100)
-#     draw_wrapped_text(draw, f"Освіта:\n{data['education']}", font=font_text, fill="#111A94", x=300, y=420, max_width=100)
-#     draw_wrapped_text(draw, f"Досвід:\n{data['experience']}", font=font_text, fill="#111A94", x=300, y=520, max_width=100)
-#     draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=300, y=620, max_width=100)
-#     draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=300, y=720, max_width=100)
-#     draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=300, y=820, max_width=100)
-
-#     pdf_path = f"cv_{callback.from_user.id}.pdf"
-#     image.save(pdf_path, "PDF")
-
-#     with open(pdf_path, "rb") as pdf_file:
-#         file_bytes = pdf_file.read()
-#         document = BufferedInputFile(file=file_bytes, filename=f"CV_{callback.from_user.id}.pdf")
-#         doc = await callback.message.answer_document(document)
-#         file_id = doc.document.file_id
-
-#     # Оновлення бази даних
-#     await add_cv(
-#         user_id=callback.from_user.id,
-#         cv_file_path=file_id,
-#         position=data['position'],
-#         languages=data['languages'],
-#         education=data['education'],
-#         experience=data['experience'],
-#         skills=data['skills'],
-#         about=data['about'],
-#         contacts=data['contacts']
-#     )
-
-#     os.remove(pdf_path)
-#     await callback.message.answer("✅ Нове CV створено та збережено!", reply_markup=main_menu_kb())
-#     await state.clear()
-#     await callback.answer()
-
-# @cv_router.callback_query(F.data == "cancel_new_cv")
-# async def cancel_new_cv(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer("❌ Створення нового CV скасовано.", reply_markup=main_menu_kb())
-#     await state.clear()
-#     await callback.answer()
+@cv_router.message(F.text == "✏️ Редагувати попередній варіант") # кнопка з клавіатури якщо сівішка вже є
+async def change_existing_cv(message: types.Message, state: FSMContext):
+    await message.answer("Гаразд, зараз на екрані ти бачиш всю інфрмацію зі створеного CV\n\n Обирай яку з відповідей ти хочеш змінити або заповнюй CV заново!")
+    await state.clear()
+    try:
+        user = await get_user(message.from_user.id)
+        user_name = user.get("name", "") if user else ""
+    except Exception as e:
+        user_name = ""
+    cv_data = await get_cv(message.from_user.id)
+    if cv_data:
+        summary = (
+            f"Ім'я:{user_name}\n"
+            f"Посада: {cv_data['position']}\n"
+            f"Мови: {cv_data['languages']}\n"
+            f"Освіта: {cv_data['education']}\n"
+            f"Досвід: {cv_data['experience']}\n"
+            f"Навички: {cv_data['skills']}\n"
+            f"Про кандидата: {cv_data['about']}\n"
+            f"Контакти: {cv_data['contacts']}"
+        )
+        await message.answer(summary, reply_markup=change_cv_type_kb())
+    await state.set_state(CVStates.position)
+    await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
+    
