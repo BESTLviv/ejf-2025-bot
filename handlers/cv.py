@@ -272,8 +272,14 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
     draw_wrapped_text(draw, f"Навички:\n{data['skills']}", font=font_text, fill="#111A94", x=300, y=620, max_width=100)
     draw_wrapped_text(draw, f"Про кандидата:\n{data['about']}", font=font_text, fill="#111A94", x=300, y=720, max_width=100)
     draw_wrapped_text(draw, f"Контакти:\n{data['contacts']}", font=font_text, fill="#111A94", x=300, y=820, max_width=100)
-
-    pdf_path = f"cv_{message.from_user.id}.pdf"
+    try:
+        user = await get_user(message.from_user.id)
+        full_name = user.get("name", "") if user else ""
+        name_parts = full_name.split()
+        user_name = "_".join(name_parts) if len(name_parts) > 0 else ""
+    except Exception as e:
+        user_name = ""
+    pdf_path = f"cv{user_name}.pdf"
     image.save(pdf_path, "PDF")
 
     with open(pdf_path, "rb") as pdf_file:
