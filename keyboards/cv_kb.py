@@ -19,8 +19,13 @@ def has_cv_kb():
 def change_cv_type_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Бажана посада", callback_data="posada"),InlineKeyboardButton(text="Володіння мовами", callback_data="movy")],
-            [InlineKeyboardButton(text="Освіта", callback_data="osvita"),InlineKeyboardButton(text="Досвід", callback_data="dosvid")],
-            [InlineKeyboardButton(text="Навички", callback_data="navychky"),InlineKeyboardButton(text="Про кандидата", callback_data="prokandydata")],
-            [InlineKeyboardButton(text="Контакти", callback_data="contactiky"),InlineKeyboardButton(text="Заповнити CV заново", callback_data="refill_cv")]
-        ]) 
+            [InlineKeyboardButton(text="Бажана посада", callback_data="edit_position"),
+             InlineKeyboardButton(text="Володіння мовами", callback_data="edit_languages")],
+            [InlineKeyboardButton(text="Освіта", callback_data="edit_education"),
+             InlineKeyboardButton(text="Досвід", callback_data="edit_experience")],
+            [InlineKeyboardButton(text="Навички", callback_data="edit_skills"),
+             InlineKeyboardButton(text="Про кандидата", callback_data="edit_about")],
+            [InlineKeyboardButton(text="Контакти", callback_data="edit_contacts"),
+             InlineKeyboardButton(text="Заповнити CV заново", callback_data="refill_cv")]
+        ]
+    )
