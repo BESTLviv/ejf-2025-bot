@@ -3,13 +3,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InputFile
 from aiogram.fsm.state import State, StatesGroup
 from utils.database import get_user, add_cv
-from keyboards.cv_kb import get_cv_type_kb
+from keyboards.cv_kb import get_cv_type_kb, change_cv_type_kb
 from keyboards.main_menu_kb import main_menu_kb
 from PIL import Image, ImageDraw, ImageFont
 import os
 import re
 import textwrap
 from aiogram.types import BufferedInputFile
+from utils.database import get_cv
+
+
 
 cv_router = Router()
 
@@ -32,14 +35,15 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 
 @cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
-    await message.answer(
+             
+        await message.answer(
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
         "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!",
         reply_markup=get_cv_type_kb()
     )
 
 
-@cv_router.message(F.text == "Завантажити своє резюме") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "⚡️ Завантажити своє резюме") # кнопка з клавіатури сівішок
 async def ask_cv_file(message: types.Message):
     if not is_correct_text(message.text):
         await message.answer(
@@ -80,16 +84,22 @@ async def handle_cv_file(message: types.Message):
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
-@cv_router.message(F.text == "Створити резюме разом") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "⚡️ Створити резюме разом")  # кнопка з клавіатури
 async def cmd_start(message: types.Message, state: FSMContext):
-    if not is_correct_text(message.text):
+    existing_cv = await get_cv(message.from_user.id)
+    if existing_cv:
         await message.answer(
-            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+            "Бачимо, що ти вже створив резюме, то що чемпіоне, не зупиняєшся на одному?",
+            reply_markup=change_cv_type_kb()
         )
-        return
-    await state.clear()
-    await state.set_state(CVStates.position)
-    await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
+        await state.set_state(CVStates.confirmation)
+    else:
+        await state.clear()
+        await state.set_state(CVStates.position)
+        await message.answer(
+            "Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.",
+            reply_markup=ReplyKeyboardRemove()
+        )
 
 
 @cv_router.message(CVStates.position) # питання студіків
@@ -291,7 +301,7 @@ async def process_confirm_no(message: types.Message, state: FSMContext):
     await message.answer("Гаразд, давай спробуємо ще раз. Яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
 
 
-@cv_router.message(F.text == "Повернутись до блоків") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "⚡️ Повернутись до блоків" or F.text == "✏️ Повернутись до блоків") # кнопка з клавіатури сівішок
 async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
