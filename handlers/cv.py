@@ -330,9 +330,9 @@ async def back_to_menu(message: types.Message, state: FSMContext):
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
 
 
-@cv_router.message(F.text == "✏️ Редагувати попередній варіант") # кнопка з клавіатури якщо сівішка вже є
+@cv_router.message(F.text == "✏️ Редагувати попередній варіант")  # кнопка з клавіатури, якщо CV вже є
 async def change_existing_cv(message: types.Message, state: FSMContext):
-    await message.answer("Гаразд, зараз на екрані ти бачиш всю інфрмацію зі створеного CV\n\n Обирай яку з відповідей ти хочеш змінити або заповнюй CV заново!")
+    await message.answer("Гаразд, зараз на екрані ти бачиш всю інформацію з твого CV\n\n Обирай, яку з відповідей ти хочеш змінити, або заповнюй CV заново!")
     await state.clear()
     try:
         user = await get_user(message.from_user.id)
@@ -342,7 +342,7 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
     cv_data = await get_cv(message.from_user.id)
     if cv_data:
         summary = (
-            f"Ім'я:{user_name}\n"
+            f"Ім'я: {user_name}\n"
             f"Посада: {cv_data['position']}\n"
             f"Мови: {cv_data['languages']}\n"
             f"Освіта: {cv_data['education']}\n"
@@ -352,6 +352,60 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
             f"Контакти: {cv_data['contacts']}"
         )
         await message.answer(summary, reply_markup=change_cv_type_kb())
+
+
+@cv_router.callback_query(F.data == "edit_position")
+async def edit_position(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нову бажану посаду:")
     await state.set_state(CVStates.position)
-    await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
-    
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_languages")
+async def edit_languages(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нові мови та рівень володіння:")
+    await state.set_state(CVStates.languages)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_education")
+async def edit_education(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нову інформацію про освіту:")
+    await state.set_state(CVStates.education)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_experience")
+async def edit_experience(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи новий досвід роботи:")
+    await state.set_state(CVStates.experience)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_skills")
+async def edit_skills(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нові навички:")
+    await state.set_state(CVStates.skills)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_about")
+async def edit_about(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Розкажи нову інформацію про себе:")
+    await state.set_state(CVStates.about)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "edit_contacts")
+async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Вкажи нові контактні дані:")
+    await state.set_state(CVStates.contacts)
+    await callback.answer()
+
+
+@cv_router.callback_query(F.data == "refill_cv")
+async def refill_cv(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await state.set_state(CVStates.position)
+    await callback.message.answer("Заповнюємо CV заново. Почнемо з бажаної посади:")
+    await callback.answer()
