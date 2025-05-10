@@ -301,7 +301,12 @@ async def process_confirm_no(message: types.Message, state: FSMContext):
     await message.answer("Гаразд, давай спробуємо ще раз. Яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
 
 
-@cv_router.message(F.text == "⚡️ Повернутись до блоків" or F.text == "✏️ Повернутись до блоків") # кнопка з клавіатури сівішок
+@cv_router.message(F.text == "⚡️ Повернутись до блоків" ) # кнопка з клавіатури сівішок
+async def back_to_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+
+@cv_router.message(F.text == "✏️ Повернутись до блоків" ) # кнопка з клавіатури сівішок
 async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
