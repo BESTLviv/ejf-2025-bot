@@ -80,7 +80,17 @@ async def handle_cv_file(message: types.Message):
         await message.answer("🕒 Файл завантажується дуже довго… Можливо, він перевищує дозволений розмір у 10 МБ. Перевір, будь ласка, і спробуй ще раз!")
         return
 
-    await add_cv(message.from_user.id, cv_file_path=file_id)
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=file_id,
+        position='',
+        languages='',
+        education='',
+        experience='',
+        skills='',
+        about='',
+        contacts=''
+    )    
     await message.answer("✅ CV завантажено! 🎉", reply_markup=main_menu_kb())
 
 
@@ -410,4 +420,3 @@ async def refill_cv(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("Заповнюємо CV заново. Почнемо з бажаної посади:")
     await callback.answer()
 
-    
