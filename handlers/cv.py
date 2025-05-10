@@ -87,7 +87,8 @@ async def handle_cv_file(message: types.Message):
 @cv_router.message(F.text == "⚡️ Створити резюме разом")  # кнопка з клавіатури
 async def cmd_start(message: types.Message, state: FSMContext):
     existing_cv = await get_cv(message.from_user.id)
-    if existing_cv:
+    has_cv_data = existing_cv and all(existing_cv.get(field) for field in ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts'])
+    if has_cv_data:
         await message.answer(
             "Бачимо, що ти вже створив резюме, то що чемпіоне, не зупиняєшся на одному?",
             reply_markup=has_cv_kb()
