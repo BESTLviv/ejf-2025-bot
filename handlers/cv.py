@@ -409,3 +409,5 @@ async def refill_cv(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(CVStates.position)
     await callback.message.answer("Заповнюємо CV заново. Почнемо з бажаної посади:")
     await callback.answer()
+
+    
