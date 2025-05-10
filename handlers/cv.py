@@ -111,17 +111,26 @@ async def cmd_start(message: types.Message, state: FSMContext):
         )
 
 
-@cv_router.message(CVStates.position) # питання студіків
+@cv_router.message(CVStates.position)  # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
         )
         return
+    data = await state.get_data()
     await state.update_data(position=message.text)
-    await state.set_state(CVStates.languages)
-    await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
+    if data.get("position"):
+        await message.answer(
+            "Поле 'Бажана посада' оновлено. Якщо хочеш змінити інші поля, обери їх у меню редагування.",
+            reply_markup=change_cv_type_kb()
+        )
+        return  
 
+    await state.set_state(CVStates.languages)
+    await message.answer(
+        "Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."
+    )
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
@@ -378,7 +387,7 @@ async def edit_position(callback: types.CallbackQuery, state: FSMContext):
         )
     
     await callback.message.answer("Вкажи нову бажану посаду:")
-    await state.set_state(CVStates.position)
+    await state.set_state(CVStates.education)
     await callback.answer()
 
 @cv_router.callback_query(F.data == "edit_languages")
@@ -412,65 +421,21 @@ async def edit_education(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 @cv_router.callback_query(F.data == "edit_experience")
 async def edit_experience(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            languages=cv_data.get('languages', ''),
-            education=cv_data.get('education', ''),
-            skills=cv_data.get('skills', ''),
-            about=cv_data.get('about', ''),
-            contacts=cv_data.get('contacts', '')
-        )
     await callback.message.answer("Вкажи новий досвід:")
     await state.set_state(CVStates.experience)
     await callback.answer()
 @cv_router.callback_query(F.data == "edit_skills")  
 async def edit_skills(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            languages=cv_data.get('languages', ''),
-            education=cv_data.get('education', ''),
-            experience=cv_data.get('experience', ''),
-            about=cv_data.get('about', ''),
-            contacts=cv_data.get('contacts', '')
-        )
     await callback.message.answer("Вкажи нові навички:")
     await state.set_state(CVStates.skills)
     await callback.answer()
 @cv_router.callback_query(F.data == "edit_contacts")
 async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            languages=cv_data.get('languages', ''),
-            education=cv_data.get('education', ''),
-            experience=cv_data.get('experience', ''),
-            skills=cv_data.get('skills', ''),
-            about=cv_data.get('about', '')
-        )
     await callback.message.answer("Вкажи нові контакти:")
     await state.set_state(CVStates.contacts)
     await callback.answer()
 @cv_router.callback_query(F.data == "edit_about")
 async def edit_about(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            languages=cv_data.get('languages', ''),
-            education=cv_data.get('education', ''),
-            experience=cv_data.get('experience', ''),
-            skills=cv_data.get('skills', ''),
-            contacts=cv_data.get('contacts', '')
-        )
     await callback.message.answer("Вкажи нову інформацію про себе:")
     await state.set_state(CVStates.about)
     await callback.answer()
