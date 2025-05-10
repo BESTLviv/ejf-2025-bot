@@ -284,7 +284,7 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
 
     with open(pdf_path, "rb") as pdf_file:
         file_bytes = pdf_file.read()
-        document = BufferedInputFile(file=file_bytes, filename=f"CV_{message.from_user.id}.pdf")
+        document = BufferedInputFile(file=file_bytes, filename=f"CV{user_name}.pdf")
         doc = await message.answer_document(document)
         file_id = doc.document.file_id
 
