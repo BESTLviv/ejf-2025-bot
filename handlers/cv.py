@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InputFile
 from aiogram.fsm.state import State, StatesGroup
 from utils.database import get_user, add_cv
-from keyboards.cv_kb import get_cv_type_kb, change_cv_type_kb
+from keyboards.cv_kb import get_cv_type_kb, change_cv_type_kb, has_cv_kb
 from keyboards.main_menu_kb import main_menu_kb
 from PIL import Image, ImageDraw, ImageFont
 import os
@@ -90,7 +90,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
     if existing_cv:
         await message.answer(
             "Бачимо, що ти вже створив резюме, то що чемпіоне, не зупиняєшся на одному?",
-            reply_markup=change_cv_type_kb()
+            reply_markup=has_cv_kb()
         )
         await state.set_state(CVStates.confirmation)
     else:
@@ -282,8 +282,17 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         file_id = doc.document.file_id
 
 
-    await add_cv(message.from_user.id, cv_file_path=file_id) 
-
+    await add_cv(
+        user_id=message.from_user.id,
+        cv_file_path=file_id,
+        position=data['position'],
+        languages=data['languages'],
+        education=data['education'],
+        experience=data['experience'],
+        skills=data['skills'],
+        about=data['about'],
+        contacts=data['contacts']
+    )
     os.remove(pdf_path)
 
     await message.answer("Вітаємо! Твоє резюме готове. Тепер його побачать роботодавці.", reply_markup=main_menu_kb())
@@ -306,7 +315,36 @@ async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
 
-@cv_router.message(F.text == "✏️ Повернутись до блоків" ) # кнопка з клавіатури сівішок
+#==================================================================================================================================
+
+@cv_router.message(F.text == "✏️ Повернутись до блоків" ) # кнопка з клавіатури якщо сівішка вже є
 async def back_to_menu(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+
+
+@cv_router.message(F.text == "✏️ Редагувати попередній варіант") # кнопка з клавіатури якщо сівішка вже є
+async def change_existing_cv(message: types.Message, state: FSMContext):
+    await message.answer("Гаразд, зараз на екрані ти бачиш всю інфрмацію зі створеного CV\n\n Обирай яку з відповідей ти хочеш змінити або заповнюй CV заново!")
+    await state.clear()
+    try:
+        user = await get_user(message.from_user.id)
+        user_name = user.get("name", "") if user else ""
+    except Exception as e:
+        user_name = ""
+    cv_data = await get_cv(message.from_user.id)
+    if cv_data:
+        summary = (
+            f"Ім'я:{user_name}\n"
+            f"Посада: {cv_data['position']}\n"
+            f"Мови: {cv_data['languages']}\n"
+            f"Освіта: {cv_data['education']}\n"
+            f"Досвід: {cv_data['experience']}\n"
+            f"Навички: {cv_data['skills']}\n"
+            f"Про кандидата: {cv_data['about']}\n"
+            f"Контакти: {cv_data['contacts']}"
+        )
+        await message.answer(summary, reply_markup=change_cv_type_kb())
+    await state.set_state(CVStates.position)
+    await message.answer("Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.", reply_markup=ReplyKeyboardRemove())
+    
