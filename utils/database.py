@@ -52,11 +52,10 @@ async def add_cv(user_id: int, cv_file_path: str = None, position: str = None,
         "about": about,
         "contacts": contacts
     }
-    # Використовуємо update_one для оновлення або створення запису
     await cv_collection.update_one(
-        {"telegram_id": user_id},  # Умови пошуку
-        {"$set": cv_data},        # Поля для оновлення
-        upsert=True               # Якщо запису немає, створити новий
+        {"telegram_id": user_id},  
+        {"$set": cv_data},        
+        upsert=True       
     )
 
 async def get_cv(user_id: int):
