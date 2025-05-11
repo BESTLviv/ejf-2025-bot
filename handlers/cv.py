@@ -37,7 +37,7 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 
 @cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
-    photo_path = "media/cv.jpg"
+    photo_path = "media/cv.png"
     photo = FSInputFile(photo_path)
     await message.answer_photo(
         photo=photo,
