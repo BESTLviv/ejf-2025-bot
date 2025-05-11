@@ -36,15 +36,10 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 
 @cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
-        photo_path = "media/cv.jpg"
-        caption = ( 
+        await message.answer(
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
-        "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!")
-        await message.answer_photo(
-            photo=InputFile(photo_path),
-            caption=caption,
-            reply_markup=get_cv_type_kb(), 
-            parse_mode="HTML"
+        "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!",
+        reply_markup=get_cv_type_kb()
     )
 
 
@@ -390,6 +385,7 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
         
         await message.answer(summary, reply_markup=change_cv_type_kb())
         await state.clear()
+
 
 @cv_router.message(F.text == "✏️ Так, хочу додати ще одне CV")
 async def change_existing_cv(message: types.Message, state: FSMContext):
