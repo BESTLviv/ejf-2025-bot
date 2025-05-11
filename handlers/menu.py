@@ -54,8 +54,11 @@ async def share_and_win(message: types.Message):
         caption=caption,
         parse_mode="HTML"
     )
-    await message.answer(
-        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.\n\n")
+    await message.answer(        
+        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.\n\n",
+        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.\n\n",
+        parse_mode="HTML")
+    
 
 @router.message(F.text == "👥 Чат з учасниками")
 async def chat_with_participants(message: types.Message):
@@ -99,7 +102,11 @@ def build_speaker_keyboard(selected_index: int):
 
 @router.message(F.text == "🗣️ Спікери")
 async def show_speakers(message: types.Message):
-    await message.answer("Найцінніше, що можна зробити з набутими знаннями — це застосовувати їх і ділитися з іншими. Наші спікери готові передати свою мудрість, тож приймай її та розширюй горизонти!")
+    photo_path = "media/speakers.jpg"
+    caption = ("Найцінніше, що можна зробити з набутими знаннями — це застосовувати їх і ділитися з іншими. Наші спікери готові передати свою мудрість, тож приймай її та розширюй горизонти!")
+    await message.answer_photo(
+        photo=FSInputFile(photo_path),
+        caption=caption)
     selected_index = 0
     speaker = speakers[selected_index]
     photo = FSInputFile(speaker["photo_path"])
@@ -125,7 +132,7 @@ async def select_speaker(callback: CallbackQuery):
         file = FSInputFile(speaker["photo_path"])
         msg = await callback.message.answer_photo(
             photo=file,
-            caption=f"{speaker['name']}\n{speaker['description']}",
+            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}",
             reply_markup=keyboard
         )
         file_ids[speaker["key"]] = msg.photo[-1].file_id
@@ -133,7 +140,7 @@ async def select_speaker(callback: CallbackQuery):
     else:
         media = InputMediaPhoto(
             media=file_id,
-            caption=f"{speaker['name']}\n{speaker['description']}"
+            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}" 
         )
         await callback.message.edit_media(media=media, reply_markup=keyboard)
 
@@ -141,7 +148,15 @@ async def select_speaker(callback: CallbackQuery):
 
 @router.message(F.text == "🩵💛 Підтримка ЗСУ")
 async def show_ukraine_support(message: types.Message):
-    await message.answer("Завдяки нашим військовим ми можемо організовувати Інженерний Ярмарок Кар’єри. Тепер наш час віддячити їм – долучайся до збору  👇")
+    zsu_photo_path = "media/armedforces.jpg"
+    zsu_caption = ("Завдяки нашим військовим ми можемо організовувати Інженерний Ярмарок Кар’єри.",
+                   "Тепер наш час віддячити їм – долучайся до збору  👇")
+    zsu_photo = FSInputFile(zsu_photo_path)
+    await message.answer_photo(
+        photo=zsu_photo,
+        caption=zsu_caption,
+        parse_mode="HTML"
+    )
     photo_path = "media/zbir.jpg"
     caption = (
         "РОЗІГРАШ🔥\n\n"

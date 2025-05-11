@@ -36,11 +36,15 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 
 @cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
-             
-        await message.answer(
+        photo_path = "media/cv.jpg"
+        caption = ( 
         "Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
-        "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!",
-        reply_markup=get_cv_type_kb()
+        "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!")
+        await message.answer_photo(
+            photo=InputFile(photo_path),
+            caption=caption,
+            reply_markup=get_cv_type_kb(), 
+            parse_mode="HTML"
     )
 
 
