@@ -55,7 +55,7 @@ async def add_cv(user_id: int, cv_file_path: str = None, position: str = None,
     await cv_collection.update_one(
         {"telegram_id": user_id},  
         {"$set": cv_data},        
-        upsert=True       
+        upsert=True               
     )
 
 async def get_cv(user_id: int):

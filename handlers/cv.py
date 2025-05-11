@@ -460,83 +460,92 @@ async def edit_position(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
         await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
         return
-
-    # Оновлюємо тимчасові дані
     await state.update_data(position=message.text)
-
-    # Оновлюємо базу даних
     temp_data = await state.get_data()
     await update_cv_in_db(message.from_user.id, temp_data)
 
-    await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.", 
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
                          reply_markup=change_cv_type_kb())
     await state.clear()
 
-    @cv_router.message(TempCVStates.languages)
-    async def edit_languages(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
-        
-        await state.update_data(languages=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+@cv_router.message(TempCVStates.languages)
+async def edit_languages(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(languages=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
 
-    @cv_router.message(TempCVStates.education)
-    async def edit_education(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
-        await state.update_data(education=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+@cv_router.message(TempCVStates.education)
+async def edit_education(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(education=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
 
-    @cv_router.message(TempCVStates.experience)
-    async def edit_experience(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
-        await state.update_data(experience=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+@cv_router.message(TempCVStates.experience)
+async def edit_experience(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(experience=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
 
-    @cv_router.message(TempCVStates.skills)
-    async def edit_skills(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
-        await state.update_data(skills=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+@cv_router.message(TempCVStates.skills)
+async def edit_skills(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(skills=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
 
-    @cv_router.message(TempCVStates.about)
-    async def edit_about(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
-        await state.update_data(about=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+@cv_router.message(TempCVStates.about)
+async def edit_about(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(about=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
 
-    @cv_router.message(TempCVStates.contacts)
-    async def edit_contacts(message: types.Message, state: FSMContext):
-        if not is_correct_text(message.text):
-            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
-            return
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
-        await state.update_data(contacts=message.text)
-        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
-                             reply_markup=change_cv_type_kb())
-        await state.clear()
+
+@cv_router.message(TempCVStates.contacts)
+async def edit_contacts(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+        return
+    await state.update_data(contacts=message.text)
+    temp_data = await state.get_data()
+    await update_cv_in_db(message.from_user.id, temp_data)
+
+    await message.answer("Зміни збережено!\n Обери наступне поле для редагування або підтверди зміни.", 
+                         reply_markup=change_cv_type_kb())
+    await state.clear()
 
 
 # Повторіть аналогічну логіку для інших полів (languages, education, experience, skills, contacts, about).
