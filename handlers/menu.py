@@ -54,15 +54,22 @@ async def share_and_win(message: types.Message):
         caption=caption,
         parse_mode="HTML"
     )
-    await message.answer(        
-        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.\n\n",
-        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.\n\n",
-        parse_mode="HTML")
+    await message.answer(
+        "Після виконання завдань, покажи їх нам у Stories, відмітивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a>.",
+        parse_mode="HTML"
+    )
     
 
 @router.message(F.text == "👥 Чат з учасниками")
 async def chat_with_participants(message: types.Message):
-    await message.answer("Доєднуйся до нашої спільноти та  ділися враженнями з іншими  учасниками. Для цього перейди за цим посиланням 👉 https://t.me/bestlviv")
+    photo_path = "media/chat.jpg"
+    caption = ("Доєднуйся до нашої спільноти та  ділися враженнями з іншими  учасниками. Для цього перейди за цим посиланням 👉 https://t.me/bestlviv")
+    await message.answer_photo(
+        photo=FSInputFile(photo_path),
+        caption=caption,
+        parse_mode="HTML"
+    )
+
 
 
 
@@ -133,14 +140,16 @@ async def select_speaker(callback: CallbackQuery):
         msg = await callback.message.answer_photo(
             photo=file,
             caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}",
-            reply_markup=keyboard
+            reply_markup=keyboard,
+            parse_mode="HTML"
         )
         file_ids[speaker["key"]] = msg.photo[-1].file_id
         await callback.message.delete()
     else:
         media = InputMediaPhoto(
             media=file_id,
-            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}" 
+            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}" ,
+            parse_mode="HTML"
         )
         await callback.message.edit_media(media=media, reply_markup=keyboard)
 
