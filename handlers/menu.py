@@ -69,13 +69,13 @@ file_ids = {}
 
 speakers = [
     {
-        "name": "<b>Наталія Шаховська</b>",
+        "name": "Наталія Шаховська",
         "photo_path": "media/shakhovska.jpg",
         "description": "🔹 Ректор Національного університету «Львівська політехніка»\n\n🔹 Панельна дискусія «Робота після університету: чого не вистачає випускникам?»",
         "key": "shakhovska"
     },
     {
-        "name": "<b>Інна Шульгіна</b>",
+        "name": "Інна Шульгіна",
         "photo_path": "media/shulhina.jpg",
         "description": "🔹 Lead Recruirer в Sombra\n\n🔹 Панельна дискусія «Робота після університету: чого не вистачає випускникам?»",
         "key": "shulhina"
@@ -103,8 +103,9 @@ async def show_speakers(message: types.Message):
 
     msg = await message.answer_photo(
         photo=photo,
-        caption=f"{speaker['name']}\n\n{speaker['description']}",
-        reply_markup=keyboard
+        caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}",
+        reply_markup=keyboard,
+        parse_mode="HTML"
     )
 
     file_ids[speaker["key"]] = msg.photo[-1].file_id
