@@ -3,6 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 from keyboards.main_menu_kb import main_menu_kb
 from utils.database import get_user
+from aiogram.types.input_file import FSInputFile
 
 
 router = Router()
@@ -19,17 +20,22 @@ async def start_handler(message: types.Message):
 
     if is_registered:
         first_name = user_data.get("name", "").split()[0] if user_data.get("name") else ""
-        await message.answer(
-            f"Радий знову тебе бачити, {first_name}! 👋\n"
-            "Зараз на панелі ти бачиш розділи – тисни на них, щоб дізнатись більше деталей про кожен блок 🔎.",
+        photo_path = "media/ejf.jpg"
+        caption =  (f"Радий знову тебе бачити, {first_name}! 👋\n"
+            "Зараз на панелі ти бачиш розділи – тисни на них, щоб дізнатись більше деталей про кожен блок 🔎.")
+        await message.answer_photo(
+            photo=FSInputFile(photo_path),
+            caption=caption,
             reply_markup=main_menu_kb(),
             parse_mode="HTML"
         )
     else:
-        await message.answer(
-            "Привіт! 👋\n"
-            "Я – бот <b>Інженерного Ярмарку Кар'єри</b> й допоможу тобі дізнатися про всі наші активності, спікерів та оновлення.\n"
-            "Щоб розпочати наше знайомство натисни «Старт 🚀»!",
+        photo_path = "media/ejf.jpg"
+        caption = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
+        "Тепер, познайомимося ближче!")
+        await message.answer_photo(
+            photo=FSInputFile(photo_path),
+            caption=caption,
             reply_markup=keyboard,
             parse_mode="HTML"
-        )
+    )
