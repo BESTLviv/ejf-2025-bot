@@ -111,26 +111,41 @@ async def cmd_start(message: types.Message, state: FSMContext):
         )
 
 
-@cv_router.message(CVStates.position)  # питання студіків
+@cv_router.message(CVStates.position) # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    # Якщо поле вже заповнене, пропонуємо залишити попередню відповідь
+    if data.get("position"):
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Залишити попередню відповідь", callback_data="keep_previous_position")]
+            ]
+        )
+        await message.answer(
+            f"Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.",
+            reply_markup=keyboard
+        )
+        return
+
+    # Якщо поле не заповнене, перевіряємо введений текст
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
         )
         return
-    data = await state.get_data()
-    await state.update_data(position=message.text)
-    if data.get("position"):
-        await message.answer(
-            "Поле 'Бажана посада' оновлено. Якщо хочеш змінити інші поля, обери їх у меню редагування.",
-            reply_markup=change_cv_type_kb()
-        )
-        return  
 
+    # Оновлюємо дані та переходимо до наступного питання
+    await state.update_data(position=message.text)
     await state.set_state(CVStates.languages)
-    await message.answer(
-        "Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."
-    )
+    await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
+
+@cv_router.callback_query(F.data == "keep_previous_position")
+async def keep_previous_position(callback: types.CallbackQuery, state: FSMContext):
+    # Переходимо до наступного питання, залишаючи попередню відповідь
+    await state.set_state(CVStates.languages)
+    await callback.message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
+    await callback.answer()
+
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
