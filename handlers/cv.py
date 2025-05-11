@@ -12,6 +12,7 @@ import textwrap
 from aiogram.types import BufferedInputFile
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.database import get_cv
+from aiogram.types.input_file import FSInputFile
 
 
 
@@ -36,8 +37,8 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 
 @cv_router.message(F.text == "📂 CV") # кнопка з головної клавіатури
 async def start_cv_menu(message: types.Message):
-    # Send image first
-    photo = InputFile("static/images/cv.jpg")
+    photo_path = "media/cv.jpg"
+    photo = FSInputFile(photo_path)
     await message.answer_photo(
         photo=photo,
         caption="Компанії шукають різних спеціалістів саме серед учасників Ярмарку!\n"
