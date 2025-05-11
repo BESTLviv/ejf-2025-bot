@@ -362,9 +362,9 @@ async def back_to_menu(message: types.Message, state: FSMContext):
     await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
 
 
-@cv_router.message(F.text == "✏️ Редагувати попередній варіант")  # кнопка з клавіатури, якщо CV вже є
+@cv_router.message(F.text == "✏️ Редагувати попередній варіант")
 async def change_existing_cv(message: types.Message, state: FSMContext):
-    await message.answer("Гаразд, зараз на екрані ти бачиш всю інформацію з твого CV\n\n Обирай, яку з відповідей ти хочеш змінити, або заповнюй CV заново!")
+    await message.answer("Гаразд, зараз на екрані ти бачиш всю інформацію з твого CV\nОбирай, яку з відповідей ти хочеш змінити, або заповнюй CV заново!")
     await state.clear()
     try:
         user = await get_user(message.from_user.id)
@@ -383,74 +383,205 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
             f"Про кандидата: {cv_data['about']}\n"
             f"Контакти: {cv_data['contacts']}"
         )
+        
         await message.answer(summary, reply_markup=change_cv_type_kb())
+        await state.clear()
+        # await state.set_state(CVStates.position)
+        # await message.answer("Тож почнімо знову, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.")
+            
 
 #==================================================================================================================================
+class TempCVStates(StatesGroup):  # Клас для тимчасового зберігання змінених полів
+    position = State()
+    languages = State()
+    education = State()
+    experience = State()
+    skills = State()
+    contacts = State()
+    about = State()
+    confirmation = State()
 
-@cv_router.callback_query(F.data == "edit_position")
-async def edit_position(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            languages=cv_data.get('languages', ''),
-            education=cv_data.get('education', ''),
-            experience=cv_data.get('experience', ''),
-            skills=cv_data.get('skills', ''),
-            about=cv_data.get('about', ''),
-            contacts=cv_data.get('contacts', '')
-        )
-    
-    await callback.message.answer("Вкажи нову бажану посаду:")
-    await state.set_state(CVStates.education)
+@cv_router.callback_query(F.data.startswith("edit_"))
+async def edit_field(callback: types.CallbackQuery, state: FSMContext):
+    # Визначаємо, яке поле редагується
+    field_map = {
+        "edit_position": ("position", "Яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо."),
+        "edit_languages": ("languages", "Якими мовами ти володієш? Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2."),
+        "edit_education": ("education", "Вкажи університет та спеціальність, на якій навчаєшся. Якщо можеш похвалитись пройденими курсами, тоді обовʼязково це зроби!"),
+        "edit_experience": ("experience", "Маєш досвід роботи або практики? Якщо так, коротко опиши посаду, обов'язки та період. Якщо досвіду немає — просто напиши «НІ»."),
+        "edit_skills": ("skills", "Якими навичками ти володієш? Технічні навички, інструменти, програми, а також особисті якості."),
+        "edit_about": ("about", "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."),
+        "edit_contacts": ("contacts", "Залиш свої контактні дані! Email та номер телефону, щоб роботодавці могли з тобою зв'язатися.")
+    }
+
+    callback_data = callback.data
+    field, question = field_map.get(callback_data, (None, None))
+
+    if not field:
+        await callback.answer("Невідома дія!", show_alert=True)
+        return
+
+    await state.set_state(getattr(TempCVStates, field))
+    await callback.message.answer(question)
     await callback.answer()
 
-@cv_router.callback_query(F.data == "edit_languages")
-async def edit_languages(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            education=cv_data.get('education', ''),
-            experience=cv_data.get('experience', ''),
-            skills=cv_data.get('skills', ''),
-            about=cv_data.get('about', ''),
-            contacts=cv_data.get('contacts', '')
+    @cv_router.message(TempCVStates.position)
+    async def edit_position(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(position=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.", 
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.languages)
+    async def edit_languages(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+        
+        await state.update_data(languages=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.education)
+    async def edit_education(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(education=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.experience)
+    async def edit_experience(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(experience=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.skills)
+    async def edit_skills(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(skills=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.about)
+    async def edit_about(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(about=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+    @cv_router.message(TempCVStates.contacts)
+    async def edit_contacts(message: types.Message, state: FSMContext):
+        if not is_correct_text(message.text):
+            await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
+            return
+
+        await state.update_data(contacts=message.text)
+        await message.answer("Зміни збережено! Обери наступне поле для редагування або підтверджуй зміни.",
+                             reply_markup=change_cv_type_kb())
+        await state.clear()
+
+
+# Повторіть аналогічну логіку для інших полів (languages, education, experience, skills, contacts, about).
+
+@cv_router.callback_query(F.data == "confirm_editing")
+async def confirm_editing(callback: types.CallbackQuery, state: FSMContext):
+    temp_data = await state.get_data()  # Отримуємо дані з тимчасового класу
+    existing_cv = await get_cv(callback.from_user.id)  # Отримуємо існуюче CV з бази даних
+
+    # Оновлюємо існуюче CV новими даними або залишаємо старі
+    updated_cv = {
+        "position": temp_data.get("position", existing_cv.get("position", "")),
+        "languages": temp_data.get("languages", existing_cv.get("languages", "")),
+        "education": temp_data.get("education", existing_cv.get("education", "")),
+        "experience": temp_data.get("experience", existing_cv.get("experience", "")),
+        "skills": temp_data.get("skills", existing_cv.get("skills", "")),
+        "about": temp_data.get("about", existing_cv.get("about", "")),
+        "contacts": temp_data.get("contacts", existing_cv.get("contacts", ""))
+    }
+    try:
+        user = await get_user(callback.from_user.id)
+        full_name = user.get("name", "") if user else ""
+        name_parts = full_name.split()
+        user_name = "_".join(name_parts) if len(name_parts) > 0 else ""
+        pdf_name = f"cv_{user_name}" if user_name else "cv"
+    except Exception as e:
+        pdf_name = "cv"
+    pdf_path = f"{pdf_name}.pdf"
+
+    try:
+        # Створення PDF
+        image = Image.open("templates/cv_template.png").convert("RGB")
+        draw = ImageDraw.Draw(image)
+        font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 14)
+        font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 36)
+
+        def draw_wrapped_text(draw, text, font, fill, x, y, max_width):
+            lines = textwrap.wrap(text, width=max_width)
+            line_height = font.getbbox("A")[1]
+            for line in lines:
+                draw.text((x, y), line, font=font, fill=fill)
+                y += line_height
+
+        draw_wrapped_text(draw, f"{user_name}", font=font_title, fill="#111A94", x=300, y=70, max_width=40)
+        draw_wrapped_text(draw, f"Бажана посада:\n {updated_cv['position']}", font=font_text, fill="#111A94", x=300, y=220, max_width=100)
+        draw_wrapped_text(draw, f"Володіння мовами:\n{updated_cv['languages']}", font=font_text, fill="#111A94", x=300, y=320, max_width=100)
+        draw_wrapped_text(draw, f"Освіта:\n{updated_cv['education']}", font=font_text, fill="#111A94", x=300, y=420, max_width=100)
+        draw_wrapped_text(draw, f"Досвід:\n{updated_cv['experience']}", font=font_text, fill="#111A94", x=300, y=520, max_width=100)
+        draw_wrapped_text(draw, f"Навички:\n{updated_cv['skills']}", font=font_text, fill="#111A94", x=300, y=620, max_width=100)
+        draw_wrapped_text(draw, f"Про кандидата:\n{updated_cv['about']}", font=font_text, fill="#111A94", x=300, y=720, max_width=100)
+        draw_wrapped_text(draw, f"Контакти:\n{updated_cv['contacts']}", font=font_text, fill="#111A94", x=300, y=820, max_width=100)
+
+        image.save(pdf_path, "PDF")
+
+        # Надсилання PDF у чат
+        with open(pdf_path, "rb") as pdf_file:
+            file_bytes = pdf_file.read()
+            document = BufferedInputFile(file=file_bytes, filename=f"CV_{user_name}.pdf")
+            doc = await callback.message.answer_document(document)
+            file_id = doc.document.file_id  # Отримуємо file_id після надсилання
+
+        # Зберігаємо оновлене CV у базу даних
+        await add_cv(
+            user_id=callback.from_user.id,
+            position=updated_cv["position"],
+            languages=updated_cv["languages"],
+            education=updated_cv["education"],
+            experience=updated_cv["experience"],
+            skills=updated_cv["skills"],
+            about=updated_cv["about"],
+            contacts=updated_cv["contacts"],
+            cv_file_path=file_id 
         )
-@cv_router.callback_query(F.data == "edit_education")
-async def edit_education(callback: types.CallbackQuery, state: FSMContext):
-    cv_data = await get_cv(callback.from_user.id)
-    if cv_data:
-        await state.update_data(
-            cv_file_path=cv_data.get('cv_file_path', ''),
-            position=cv_data.get('position', ''),
-            languages=cv_data.get('languages', ''),
-            experience=cv_data.get('experience', ''),
-            skills=cv_data.get('skills', ''),
-            about=cv_data.get('about', ''),
-            contacts=cv_data.get('contacts', '')
-        )
-    await callback.message.answer("Вкажи нову освіту:")
-    await state.set_state(CVStates.education)
-    await callback.answer()
-@cv_router.callback_query(F.data == "edit_experience")
-async def edit_experience(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи новий досвід:")
-    await state.set_state(CVStates.experience)
-    await callback.answer()
-@cv_router.callback_query(F.data == "edit_skills")  
-async def edit_skills(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нові навички:")
-    await state.set_state(CVStates.skills)
-    await callback.answer()
-@cv_router.callback_query(F.data == "edit_contacts")
-async def edit_contacts(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нові контакти:")
-    await state.set_state(CVStates.contacts)
-    await callback.answer()
-@cv_router.callback_query(F.data == "edit_about")
-async def edit_about(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Вкажи нову інформацію про себе:")
-    await state.set_state(CVStates.about)
-    await callback.answer()
+
+    except Exception as e:
+        await callback.message.answer("❗ Сталася помилка під час створення PDF. Спробуй ще раз пізніше.")
+        return
+    finally:
+        # Видалення тимчасового файлу
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+    await callback.message.answer("Зміни збережено! Твоє резюме оновлено та надіслано в чат.", reply_markup=main_menu_kb())
+    await state.clear()

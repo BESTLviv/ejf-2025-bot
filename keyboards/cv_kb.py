@@ -25,7 +25,7 @@ def change_cv_type_kb():
              InlineKeyboardButton(text="Досвід", callback_data="edit_experience")],
             [InlineKeyboardButton(text="Навички", callback_data="edit_skills"),
              InlineKeyboardButton(text="Про кандидата", callback_data="edit_about")],
-            [InlineKeyboardButton(text="Контакти", callback_data="edit_contacts"),
-             InlineKeyboardButton(text="Заповнити CV заново", callback_data="refill_cv")]
+            [InlineKeyboardButton(text="Контакти", callback_data="edit_contacts")],
+            [InlineKeyboardButton(text="Підтвердити зміни", callback_data="confirm_editing")]
         ]
     )
