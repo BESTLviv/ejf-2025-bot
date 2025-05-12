@@ -13,6 +13,7 @@ from aiogram.types import BufferedInputFile
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.database import get_cv
 from aiogram.types.input_file import FSInputFile
+from keyboards.cv_kb import back2menu_kb
 
 
 
@@ -23,6 +24,9 @@ def is_correct_text(text):
     only_symbols = re.fullmatch(r'[\W_]+', text) 
     return bool(contains_letters) and not only_symbols
 
+
+back2menu = "✏️ Повернутись до блоків"
+backtomenu = "⚡️ Повернутись до блоків"
 
 class CVStates(StatesGroup):# клас для збору даних при заповненні cv 
     position = State()
@@ -110,12 +114,16 @@ async def cmd_start(message: types.Message, state: FSMContext):
         await state.set_state(CVStates.position)
         await message.answer(
             "Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо. (Питання 1 з 7)",
-            reply_markup=ReplyKeyboardRemove()
+            reply_markup=back2menu_kb()
         )
 
 
 @cv_router.message(CVStates.position) # питання студіків
 async def process_position(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     data = await state.get_data()
     # Якщо поле вже заповнене, пропонуємо залишити попередню відповідь
     if data.get("position"):
@@ -142,7 +150,6 @@ async def process_position(message: types.Message, state: FSMContext):
     await state.set_state(CVStates.languages)
     await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2. (Питання 2 з 7)")
 
-back2menu = "✏️ Повернутись до блоків"
 
 @cv_router.callback_query(F.data == "keep_previous_position")
 async def keep_previous_position(callback: types.CallbackQuery, state: FSMContext):
@@ -153,7 +160,7 @@ async def keep_previous_position(callback: types.CallbackQuery, state: FSMContex
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
-    if message.text == back2menu:
+    if message.text == back2menu or message.text == backtomenu: 
         await state.clear()
         await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
         return
@@ -204,6 +211,10 @@ async def process_languages(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.about)
 async def process_languages(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
@@ -216,6 +227,10 @@ async def process_languages(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.education)
 async def process_experience(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
@@ -228,6 +243,10 @@ async def process_experience(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.skills)
 async def process_education(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
@@ -241,6 +260,10 @@ async def process_education(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.experience)
 async def process_skills(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
@@ -253,6 +276,10 @@ async def process_skills(message: types.Message, state: FSMContext):
 
 @cv_router.message(CVStates.contacts)
 async def process_contacts(message: types.Message, state: FSMContext):
+    if message.text == back2menu or message.text == backtomenu: 
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
