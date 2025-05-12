@@ -15,9 +15,10 @@ async def get_database():
     db = client["ejf-2025-bot"]
     return db
 
-async def save_user_data(user_id: int, name: str, course: str, university: str, speciality: str):
-    await users_collection.update_one(
+async def save_user_data(user_id: int, user_name: str, name: str, course: str, university: str, speciality: str):
+    await users_collection.update_one( 
         {"telegram_id": user_id},
+        {"user_name": user_name},
         {"$set": {
             "name": name,
             "course": course,

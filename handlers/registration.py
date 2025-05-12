@@ -87,6 +87,7 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
         data = await state.get_data()
         await save_user_data(
             user_id=message.from_user.id,
+            user_name=message.from_user.username,
             name=data["name"],
             course=data["course"],
             university="Не вказано",
@@ -140,6 +141,7 @@ async def finish_registration(message: types.Message, state: FSMContext):
 
     await save_user_data(
         user_id=message.from_user.id,
+        user_name=message.from_user.username,
         name=data["name"],
         course=data["course"],
         university=data["university"],
