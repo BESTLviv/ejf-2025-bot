@@ -429,7 +429,8 @@ async def change_existing_cv(message: types.Message, state: FSMContext):
     await message.answer("Чудово, давай почнемо створення нового CV!")
     await state.clear()
     await state.set_state(CVStates.position)
-    await message.answer("Тож почнімо знову, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.")
+    await message.answer("Тож почнімо знову, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.",
+                         reply_markup=back2menu_kb())
             
 
 
