@@ -142,6 +142,8 @@ async def process_position(message: types.Message, state: FSMContext):
     await state.set_state(CVStates.languages)
     await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2. (Питання 2 з 7)")
 
+back2menu = "✏️ Повернутись до блоків"
+
 @cv_router.callback_query(F.data == "keep_previous_position")
 async def keep_previous_position(callback: types.CallbackQuery, state: FSMContext):
     # Переходимо до наступного питання, залишаючи попередню відповідь
@@ -151,6 +153,10 @@ async def keep_previous_position(callback: types.CallbackQuery, state: FSMContex
 
 @cv_router.message(CVStates.languages)
 async def process_languages(message: types.Message, state: FSMContext):
+    if message.text == back2menu:
+        await state.clear()
+        await message.answer("Повертаємось до блоків!", reply_markup=main_menu_kb())
+        return
     if not is_correct_text(message.text):
         await message.answer(
             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
