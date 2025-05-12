@@ -52,7 +52,8 @@ async def ask_name(message: types.Message, state: FSMContext):
         return
     await message.answer(
         "Тоді почнімо! Напиши своє ім’я та прізвище у форматі:\n📌 Максим Сеньків (до речі, знайомся це наш головний організатор!)",
-        parse_mode="HTML"
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove() 
 
     )
     await state.set_state(Registration.name)
