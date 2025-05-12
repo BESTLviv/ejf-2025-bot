@@ -109,7 +109,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
         await state.clear()
         await state.set_state(CVStates.position)
         await message.answer(
-            "Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо.",
+            "Тож почнімо, яка посада або напрям тебе цікавить? Наприклад: стажування в сфері Data Science, робота інженером-проєктувальником тощо. (Питання 1 з 7)",
             reply_markup=ReplyKeyboardRemove()
         )
 
@@ -140,7 +140,7 @@ async def process_position(message: types.Message, state: FSMContext):
     # Оновлюємо дані та переходимо до наступного питання
     await state.update_data(position=message.text)
     await state.set_state(CVStates.languages)
-    await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2.")
+    await message.answer("Якими мовами ти володієш. Вкажи рівень володіння для кожної мови. Наприклад: українська — рідна, англійська — B2. (Питання 2 з 7)")
 
 @cv_router.callback_query(F.data == "keep_previous_position")
 async def keep_previous_position(callback: types.CallbackQuery, state: FSMContext):
@@ -190,7 +190,7 @@ async def process_languages(message: types.Message, state: FSMContext):
     await state.update_data(languages=message.text)
     await state.set_state(CVStates.about)
     await message.answer(
-        "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку."
+        "Розкажи коротко про себе. Чим цікавишся, яку сферу розглядаєш, чому хочеш працювати в обраному напрямку. (Питання 3 з 7)"
     )
 
 
@@ -205,7 +205,7 @@ async def process_languages(message: types.Message, state: FSMContext):
         return
     await state.update_data(about=message.text)
     await state.set_state(CVStates.education)
-    await message.answer("Не забуваймо і про освіту! Вкажи університет та спеціальність на якій навчаєшся. Якщо можеш похвалитись пройденими курсами, тоді обовʼязково це зроби!")
+    await message.answer("Не забуваймо і про освіту! Вкажи університет та спеціальність на якій навчаєшся. Якщо можеш похвалитись пройденими курсами, тоді обовʼязково це зроби! (Питання 4 з 7)")
 
 
 @cv_router.message(CVStates.education)
@@ -217,7 +217,7 @@ async def process_experience(message: types.Message, state: FSMContext):
         return
     await state.update_data(education=message.text)
     await state.set_state(CVStates.skills)
-    await message.answer("Якими навичками ти володієш. Технічні навички, інструменти, програми, а також особисті якості, які тобі допомагають у роботі.")
+    await message.answer("Якими навичками ти володієш. Технічні навички, інструменти, програми, а також особисті якості, які тобі допомагають у роботі. (Питання 5 з 7)")
 
 
 @cv_router.message(CVStates.skills)
@@ -229,7 +229,7 @@ async def process_education(message: types.Message, state: FSMContext):
         return
     await state.update_data(skills=message.text)
     await state.set_state(CVStates.experience)
-    await message.answer("Маєш досвід роботи або практики? Якщо так, коротко опиши посаду, обов'язки та період. Якщо досвіду немає — просто напиши «НІ».")
+    await message.answer("Маєш досвід роботи або практики? Якщо так, коротко опиши посаду, обов'язки та період. Якщо досвіду немає — просто напиши «НІ». (Питання 6 з 7)")
 
 
 
@@ -242,7 +242,7 @@ async def process_skills(message: types.Message, state: FSMContext):
         return
     await state.update_data(experience=message.text)
     await state.set_state(CVStates.contacts)
-    await message.answer("І останнє залиш свої контактні дані! Email та номер телефону, щоб роботодавці могли з тобою зв'язатися.")
+    await message.answer("І останнє залиш свої контактні дані! Email та номер телефону, щоб роботодавці могли з тобою зв'язатися. (Питання 7 з 7)")
 
 
 @cv_router.message(CVStates.contacts)
