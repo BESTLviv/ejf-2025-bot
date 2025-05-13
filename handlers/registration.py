@@ -70,8 +70,9 @@ async def validate_name(message: types.Message, state: FSMContext):
         await message.answer("⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!")
         return
     await state.update_data(name=message.text)
-    await message.answer("Приємно познайомитись, {}! Тепер обери, на якому курсі ти навчаєшся: 📚".format(parts[0]),
-                         reply_markup=get_course_kb())
+    await message.answer("Приємно познайомитись, {}!\nТепер обери, на якому курсі ти навчаєшся: 📚".format(parts[0]),
+                         reply_markup=get_course_kb(),
+                         parse_mode="HTML")
     await state.set_state(Registration.course)
 
 @router.message(Registration.course)
@@ -115,7 +116,7 @@ async def ask_speciality_or_custom_university(message: types.Message, state: FSM
         await state.set_state(Registration.university)  
     else:
         await state.update_data(university=message.text)
-        await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…", reply_markup=ReplyKeyboardRemove())
+        await message.answer("Чудово, а як щодо спеціальності?\n Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…", reply_markup=ReplyKeyboardRemove(), parse_mode="HTML")
         await state.set_state(Registration.speciality)
 
 @router.message(Registration.university)
@@ -126,7 +127,7 @@ async def handle_custom_university(message: types.Message, state: FSMContext):
         )
         return
     await state.update_data(university=message.text)  
-    await message.answer("Чудово, а як щодо спеціальності? Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
+    await message.answer("Чудово, а як щодо спеціальності?\n Напиши назву свого фаху у форматі: СШІ/ІГДГ/ІБІС…")
     await state.set_state(Registration.speciality)
 
 @router.message(Registration.speciality)
