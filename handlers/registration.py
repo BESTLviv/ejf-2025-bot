@@ -21,27 +21,27 @@ def is_correct_text(text):
     return bool(contains_letters) and not only_symbols
 
 
-# @router.message(F.text == "Старт 🚀")
-# async def start_registration(message: types.Message, state: FSMContext):
-#     if not is_correct_text(message.text):
-#         await message.answer(
-#             "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
-#         )
-#         return
-#     keyboard = ReplyKeyboardMarkup(
-#         keyboard=[[KeyboardButton(text="Звісно!")]],
-#         resize_keyboard=True,
-#         one_time_keyboard=True
-#     )
-#     photo_path = "media/ejf.jpg"
-#     caption = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
-#         "Тепер, познайомимося ближче!")
-#     await message.answer_photo(
-#         photo=FSInputFile(photo_path),
-#         caption=caption,
-#         reply_markup=keyboard,
-#         parse_mode="HTML"
-#     )
+@router.message(F.text == "Старт 🚀")
+async def start_registration(message: types.Message, state: FSMContext):
+    if not is_correct_text(message.text):
+        await message.answer(
+            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
+        )
+        return
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Звісно!")]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+    photo_path = "media/ejf.jpg"
+    caption = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
+        "Тепер, познайомимося ближче!")
+    await message.answer_photo(
+        photo=FSInputFile(photo_path),
+        caption=caption,
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
 @router.message(F.text == "Звісно!")
 async def ask_name(message: types.Message, state: FSMContext):
