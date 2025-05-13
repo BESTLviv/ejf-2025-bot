@@ -32,7 +32,7 @@ async def start_handler(message: types.Message):
         photo_path = "media/ejf.jpg" 
         caption = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
         "Тепер, познайомимося ближче!")
-    await message.answer_photo(
+        await message.answer_photo(
         photo=FSInputFile(photo_path),
         caption=caption,
         reply_markup=keyboard,
