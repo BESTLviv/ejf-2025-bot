@@ -43,10 +43,6 @@ async def show_schedule(message: types.Message):
 
 @router.message(F.text == "🎯 Гра Share and Win")
 async def share_and_win(message: types.Message):
-    photo_path = "media/shareandwin.jpg"
-    caption = (
-       
-       )
     await message.answer_photo( "<b>Хочеш використати всі можливості ярмарку, запам’ятатись компаніям і виграти класні призи?</b>\n "
         "Тоді виконуй завдання в межах гри  “Share and Win” та ділися результатами у Stories! 📸\n\n"
         "⌛<b>Важливо!</b> Завдання потрібно опублікувати до <i>'15:30 29 травня'</i>. Пізніше вони не будуть зараховані.",
@@ -78,9 +74,9 @@ async def chat_with_participants(message: types.Message):
 
 
 
-@router.message(F.text == "Я єблан")
-async def chat_with_participants(message: types.Message):
-    await message.answer("Я знаю")
+# @router.message(F.text == "Я єблан")
+# async def chat_with_participants(message: types.Message):
+#     await message.answer("Я знаю")
 
 
 
