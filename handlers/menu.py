@@ -49,7 +49,7 @@ async def share_and_win(message: types.Message):
         parse_mode="HTML"
     )
     await message.answer( 
-        "<b><center>Завдання Share&Win</center></b>\n\n"
+        "<b>Завдання Share&Win</b>\n\n"
         "Відвідай будь-яку інформаційну зону, зроби фото та виклади в Instagram Stories із тегами <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a> та компанії-учасника (компанії-учасники не можуть повторюватись).\n\n"
         "Надішли CV в телеграм-бот ярмарку\n\n"
         "Відвідай воркшоп та поділись цим соцмережах, відзначивши <a href='https://www.instagram.com/best_lviv/'>@best_lviv</a> і спікера.\n\n"
@@ -131,7 +131,7 @@ async def show_speakers(message: types.Message):
 
     msg = await message.answer_photo(
         photo=photo,
-        caption=f"<b><center>{speaker['name']}</center></b>\n\n{speaker['description']}",
+        caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}",
         reply_markup=keyboard,
         parse_mode="HTML"
     )
@@ -149,7 +149,7 @@ async def select_speaker(callback: CallbackQuery):
         file = FSInputFile(speaker["photo_path"])
         msg = await callback.message.answer_photo(
             photo=file,
-            caption=f"<b><center>{speaker['name']}</center></b>\n\n{speaker['description']}",
+            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}",
             reply_markup=keyboard,
             parse_mode="HTML"
         )
@@ -158,7 +158,7 @@ async def select_speaker(callback: CallbackQuery):
     else:
         media = InputMediaPhoto(
             media=file_id,
-            caption=f"<b><center>{speaker['name']}</center></b>\n\n{speaker['description']}" ,
+            caption=f"<b>{speaker['name']}</b>\n\n{speaker['description']}" ,
             parse_mode="HTML"
         )
         await callback.message.edit_media(media=media, reply_markup=keyboard)
@@ -175,7 +175,7 @@ async def show_ukraine_support(message: types.Message):
 
     photo_path = "media/zbir.jpg"
     caption = (
-        "<center>РОЗІГРАШ🔥</center>\n\n"
+        "РОЗІГРАШ🔥</>\n\n"
         "Завжди пам'ятаймо: війна торкається кожного з нас. Ми не маємо ані часу, ані морального права зупинятись чи розслаблятись. Нещодавно BEST Lviv успішно завершив попередній збір, і тепер ми готові оголосити новий — ще один крок до спільної перемоги.\n\n"
         "📢 Продовжуємо підтримувати 103 окрему бригаду ТРО, яка зараз героїчно захищає нас на Сумському напрямку, а також групу керування польотами одного із аеродромів України.\n\n"
         "🔋 Збираємо на Ecoflow Delta max 2000, а також на бінокль Celestron SkyMaster Pro\n\n"

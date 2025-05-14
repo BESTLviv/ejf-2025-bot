@@ -33,7 +33,7 @@ class CVStates(StatesGroup):# клас для збору даних при за�
     languages = State()
     education = State()
     experience = State()
-    skills = State()
+    skills = State() 
     contacts = State()
     about = State()
     confirmation = State()
@@ -43,7 +43,8 @@ class CVStates(StatesGroup):# клас для збору даних при за�
 async def start_cv_menu(message: types.Message):
     await message.answer("<b>Компанії шукають різних спеціалістів саме серед учасників Ярмарку!</b>\n\n"
                 "Тож завантажуй своє резюме у форматі PDF або створи його тут за кілька хвилин!",
-        reply_markup=get_cv_type_kb()
+                parse_mode="HTML",
+        reply_markup=get_cv_type_kb() 
     )
 
 
