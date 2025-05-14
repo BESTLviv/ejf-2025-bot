@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import asyncio
 import os
 import json
+from aiogram.types import ReplyKeyboardRemove
 
 from utils.database import get_all_users, cv_collection, db  # додаємо db для підключення до feedbacks
 
@@ -241,7 +242,8 @@ async def handle_rating(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(rating=rating)
 
-    await callback.message.edit_text(f"🙏 Дякуємо за оцінку!\n Нам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити, адже саме твій відгук спонукає нас до розвитку!")
+    await callback.message.edit_text(f"🙏 Дякуємо за оцінку!\n Нам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити, адже саме твій відгук спонукає нас до розвитку!",
+                                      reply_markup=ReplyKeyboardRemove()) 
     await state.set_state(FeedbackStates.waiting_for_comment)
 
 @router.message(FeedbackStates.waiting_for_comment)

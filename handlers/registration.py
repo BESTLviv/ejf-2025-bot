@@ -6,7 +6,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
 from keyboards.main_menu_kb import main_menu_kb 
 from utils.database import save_user_data
 import re
-from aiogram.types.input_file import FSInputFile
+
 router = Router()
 
 class Registration(StatesGroup):
@@ -33,12 +33,10 @@ async def start_registration(message: types.Message, state: FSMContext):
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    photo_path = "media/ejf.jpg"
-    caption = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n"
-        "Тепер, познайомимося ближче!")
-    await message.answer_photo(
-        photo=FSInputFile(photo_path),
-        caption=caption,
+    text = ("📢 <b>Інженерний Ярмарок Кар’єри</b> — це місце, де ти зможеш познайомитися з топовими компаніями, дізнатись про вакансії, а також взяти участь у цікавих активностях.\n\n"
+        "Тепер, познайомимося ближче!") 
+    await message.answer( # забрав фотку на початку, поставив як description picture 
+        text=text,
         reply_markup=keyboard,
         parse_mode="HTML"
     )

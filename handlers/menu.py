@@ -32,7 +32,7 @@ async def show_schedule(message: types.Message):
     photo_path = "media/schedule.jpg"
     await message.answer_photo(
         photo=FSInputFile(photo_path),
-        caption="Ми створили <a href='https://ejf.best-lviv.org.ua/schedule'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність. "
+        caption="<b>Ми створили <a href='https://ejf.best-lviv.org.ua/schedule'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність.</b>\n\n"
         "Використай цю можливість на максимум, та з нетерпінням чекаємо тебе!",
         parse_mode="HTML"
     )
@@ -45,13 +45,11 @@ async def show_schedule(message: types.Message):
 async def share_and_win(message: types.Message):
     photo_path = "media/shareandwin.jpg"
     caption = (
-        "Хочеш використати всі можливості ярмарку, запам’ятатись компаніям і виграти класні призи? "
-        "Тоді виконуй завдання в межах гри  “Share and Win” та ділися результатами у Stories! 📸\n\n"
-        "⌛<b>Важливо!</b> Завдання потрібно опублікувати до <i>'15:30 29 травня'</i>. Пізніше вони не будуть зараховані.\n\n\n"
+       
        )
-    await message.answer_photo(
-        photo=FSInputFile(photo_path),
-        caption=caption,
+    await message.answer_photo( "<b>Хочеш використати всі можливості ярмарку, запам’ятатись компаніям і виграти класні призи?</b>\n "
+        "Тоді виконуй завдання в межах гри  “Share and Win” та ділися результатами у Stories! 📸\n\n"
+        "⌛<b>Важливо!</b> Завдання потрібно опублікувати до <i>'15:30 29 травня'</i>. Пізніше вони не будуть зараховані.",
         parse_mode="HTML"
     )
     await message.answer( 
@@ -69,13 +67,11 @@ async def share_and_win(message: types.Message):
         parse_mode="HTML")
     
 
-@router.message(F.text == "👥 Чат з учасниками")
+@router.message(F.text == "👥 Чат з учасниками") # прибрав фотку 
 async def chat_with_participants(message: types.Message):
-    photo_path = "media/chat.jpg"
     caption = ("Доєднуйся до нашої спільноти та  ділися враженнями з іншими  учасниками. Для цього перейди за цим посиланням 👉 https://t.me/bestlviv")
     await message.answer_photo(
-        photo=FSInputFile(photo_path),
-        caption=caption,
+        "<b>Доєднуйся до нашої спільноти та  ділися враженнями з іншими  учасниками!</b>\n\n Для цього перейди за цим посиланням 👉 https://t.me/bestlviv",
         parse_mode="HTML"
     )
 
@@ -122,13 +118,11 @@ def build_speaker_keyboard(selected_index: int):
         kb.add(InlineKeyboardButton(text=text, callback_data=f"select_speaker:{i}"))
     return kb.adjust(1).as_markup()
 
-@router.message(F.text == "🗣️ Спікери")
+@router.message(F.text == "🗣️ Спікери") # прибрав фотку спікерів 
 async def show_speakers(message: types.Message):
-    photo_path = "media/speakers.jpg"
-    caption = ("Найцінніше, що можна зробити з набутими знаннями — це застосовувати їх і ділитися з іншими. Наші спікери готові передати свою мудрість, тож приймай її та розширюй горизонти!")
-    await message.answer_photo(
-        photo=FSInputFile(photo_path),
-        caption=caption)
+    await message.answer_photo("Найцінніше, що можна зробити з набутими знаннями — це застосовувати їх і ділитися з іншими. Наші спікери готові передати свою мудрість, тож приймай її та розширюй горизонти!",
+                               parse_mode="HTML"
+    )
     selected_index = 0
     speaker = speakers[selected_index]
     photo = FSInputFile(speaker["photo_path"])
@@ -172,16 +166,9 @@ async def select_speaker(callback: CallbackQuery):
 
 @router.message(F.text == "🩵💛 Підтримка ЗСУ")
 async def show_ukraine_support(message: types.Message):
-    zsu_photo_path = "media/armedforces.jpg"
-    zsu_caption = (
+    await message.answer(
         "Завдяки нашим військовим ми можемо організовувати Інженерний Ярмарок Кар’єри. "
         "Тепер наш час віддячити їм – долучайся до збору 👇"
-    )
-    zsu_photo = FSInputFile(zsu_photo_path)
-    await message.answer_photo(
-        photo=zsu_photo,
-        caption=zsu_caption,
-        parse_mode="HTML"
     )
 
     photo_path = "media/zbir.jpg"
