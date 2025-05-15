@@ -95,6 +95,7 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
         await message.answer(
             "Чудово, тебе зареєстровано. 🎉\n"
             "Зараз на панелі ти бачиш <b>розділи</b> – тисни на них, щоб дізнатись більше деталей про кожен блок 🔎.",
+            parse_mode="HTML",
             reply_markup=main_menu_kb()
         )
         await state.clear()
@@ -149,6 +150,7 @@ async def finish_registration(message: types.Message, state: FSMContext):
     await message.answer(
         "Чудово, тебе зареєстровано. 🎉\n\n"
         "Зараз на панелі ти бачиш <b>розділи</b> – тисни на них, щоб дізнатись більше деталей про кожен блок 🔎.",
+        parse_mode="HTML",
          reply_markup=main_menu_kb() 
     )
     await state.clear()
