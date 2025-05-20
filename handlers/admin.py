@@ -8,7 +8,7 @@ import asyncio
 import os
 import json
 from aiogram.types import ReplyKeyboardRemove
-
+from keyboards.main_menu_kb import main_menu_kb 
 from utils.database import get_all_users, cv_collection, db  # додаємо db для підключення до feedbacks
 
 load_dotenv()
@@ -266,5 +266,6 @@ async def save_feedback(message: types.Message, state: FSMContext):
     )
 
     await message.answer("Дуже дякуємо! Твої відповіді допоможуть нам рухатися у правильному напрямку.\n Хочемо нагадати, що <b>Інженерний Ярмарок Кар’єри</b> став можливим завдяки студентській організації <b>BEST Lviv</b>. Ми створюємо й інші круті події, які можуть тебе зацікавити: \n🟣 <b>BEST Training Week</b> – тиждень лекцій від спікерів;\n🔴 <b>BEST Capture The Flag</b> – командні змагання з кібербезпеки;\n🟠 <b>BEST Engineering Competition</b> – інженерні змагання;\n🟢 <b>BEST::HACKath0n</b> – 24-годинні IT-змагання;\nУсі ці заходи є <b>безкоштовними</b>, тож слідкуй за нашими соцмережами та долучайся до інших подій, які зацікавили! 🎯",
-                         parse_mode="HTML")
+                         parse_mode="HTML",
+                         reply_markup=main_menu_kb())
     await state.clear()
