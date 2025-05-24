@@ -10,7 +10,7 @@ import json
 from aiogram.types import ReplyKeyboardRemove
 from keyboards.main_menu_kb import main_menu_kb 
 from utils.database import get_all_users, cv_collection, db  # додаємо db для підключення до feedbacks
-
+from aiogram.types.input_file import FSInputFile
 load_dotenv()
 ADMIN = os.getenv("ADMIN")
 
@@ -277,7 +277,7 @@ async def zbir_broadcast_prompt(callback: CallbackQuery):
         [InlineKeyboardButton(text="✅ Так, розіслати", callback_data="confirm_zbir_broadcast")],
         [InlineKeyboardButton(text="❌ Ні, скасувати", callback_data="cancel_zbir_broadcast")]
     ])
-
+    photo_path="media/zbir.jpg",
     preview_caption = (
         "Інженерний Ярмарок Карʼєри приєднується до збору <b>на підтримку медиків 67 ОМБ</b>.\n\n"
         "Збираємо <b>15 000 грн</b> на протидронові сітки для евакуаційного авто, яке вивозить поранених з передової - іноді під обстрілами, іноді на межі можливого.\n\n"
@@ -286,9 +286,9 @@ async def zbir_broadcast_prompt(callback: CallbackQuery):
         "Кожна гривня – це шанс на життя. Кожен донат – це серце, що битиметься далі.\n"
         "<span class='tg-spoiler'>Долучайся 💙</span>"
     )
-
+    photo = FSInputFile(photo_path)
     await callback.message.answer_photo(
-        photo="media/zbir.jpg", 
+        photo=photo, 
         caption=preview_caption,
         parse_mode="HTML",
         reply_markup=confirm_kb
@@ -296,6 +296,7 @@ async def zbir_broadcast_prompt(callback: CallbackQuery):
 
 @router.callback_query(F.data == "confirm_zbir_broadcast")
 async def confirm_zbir_broadcast(callback: CallbackQuery):
+    photo_path="media/zbir.jpg",
     caption = (
         "Інженерний Ярмарок Карʼєри приєднується до збору <b>на підтримку медиків 67 ОМБ</b>.\n\n"
         "Збираємо <b>15 000 грн</b> на протидронові сітки для евакуаційного авто, яке вивозить поранених з передової - іноді під обстрілами, іноді на межі можливого.\n\n"
@@ -313,11 +314,12 @@ async def confirm_zbir_broadcast(callback: CallbackQuery):
 
     success = 0
     fail = 0
+    photo = FSInputFile(photo_path)
     for user_id in user_ids:
         try:
             await callback.bot.send_photo(
                 user_id,
-                photo="media/zbir.jpg",
+                photo = photo,
                 caption=caption,
                 parse_mode="HTML"
             )
