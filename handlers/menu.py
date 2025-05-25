@@ -234,13 +234,14 @@ async def show_ukraine_support(message: types.Message):
 
 def rating_keyboard():
     keyboard = [
-        [InlineKeyboardButton(text=f"⭐ 1 – Не сподобалось", callback_data=1)],
-        [InlineKeyboardButton(text=f"⭐ 2 – Могло бути краще", callback_data=2)],
-        [InlineKeyboardButton(text=f"⭐ 3 – Було нормально", callback_data=3)],
-        [InlineKeyboardButton(text=f"⭐ 4 – Було круто!", callback_data=4)],
-        [InlineKeyboardButton(text=f"⭐ 5 – Неймовірно, чекаю наступний ІЯК!", callback_data=5)],
+        [InlineKeyboardButton(text="⭐ 1 – Не сподобалось", callback_data="rate_1")],
+        [InlineKeyboardButton(text="⭐ 2 – Могло бути краще", callback_data="rate_2")],
+        [InlineKeyboardButton(text="⭐ 3 – Було нормально", callback_data="rate_3")],
+        [InlineKeyboardButton(text="⭐ 4 – Було круто!", callback_data="rate_4")],
+        [InlineKeyboardButton(text="⭐ 5 – Неймовірно, чекаю наступний ІЯК!", callback_data="rate_5")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 
 # @router.message(F.text == "💬 Відгуки події")
 # async def ask_for_feedbacks(message: types.Message):
