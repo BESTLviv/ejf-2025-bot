@@ -265,7 +265,8 @@ async def handle_rating(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         "🙏 Дякуємо за оцінку!\nНам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити – адже саме твій відгук спонукає нас до розвитку!",
-        reply_markup=ReplyKeyboardRemove()
+        parse_mode="HTML",
+        reply_markup=None
     )
     await state.set_state(FeedbackStates.waiting_for_comment)
 @router.message(FeedbackStates.waiting_for_comment)
