@@ -277,7 +277,8 @@ async def zbir_broadcast_prompt(callback: CallbackQuery):
         [InlineKeyboardButton(text="✅ Так, розіслати", callback_data="confirm_zbir_broadcast")],
         [InlineKeyboardButton(text="❌ Ні, скасувати", callback_data="cancel_zbir_broadcast")]
     ])
-    photo_path="media/zbir.jpg",
+
+    photo_path = "media/zbir.jpg"
     preview_caption = (
         "Інженерний Ярмарок Карʼєри приєднується до збору <b>на підтримку медиків 67 ОМБ</b>.\n\n"
         "Збираємо <b>15 000 грн</b> на протидронові сітки для евакуаційного авто, яке вивозить поранених з передової - іноді під обстрілами, іноді на межі можливого.\n\n"
@@ -296,7 +297,7 @@ async def zbir_broadcast_prompt(callback: CallbackQuery):
 
 @router.callback_query(F.data == "confirm_zbir_broadcast")
 async def confirm_zbir_broadcast(callback: CallbackQuery):
-    photo_path="media/zbir.jpg",
+    photo_path = "media/zbir.jpg"
     caption = (
         "Інженерний Ярмарок Карʼєри приєднується до збору <b>на підтримку медиків 67 ОМБ</b>.\n\n"
         "Збираємо <b>15 000 грн</b> на протидронові сітки для евакуаційного авто, яке вивозить поранених з передової - іноді під обстрілами, іноді на межі можливого.\n\n"
@@ -319,7 +320,7 @@ async def confirm_zbir_broadcast(callback: CallbackQuery):
         try:
             await callback.bot.send_photo(
                 user_id,
-                photo = photo,
+                photo=photo,
                 caption=caption,
                 parse_mode="HTML"
             )
@@ -332,4 +333,4 @@ async def confirm_zbir_broadcast(callback: CallbackQuery):
 
 @router.callback_query(F.data == "cancel_zbir_broadcast")
 async def cancel_zbir_broadcast(callback: CallbackQuery):
-    await callback.message.answer("❌ Розсилку повідомлення зі збором скасовано. Будь обережніше з кнопочками")
+    await callback.message.answer("❌ Розсилку повідомлення зі збором скасовано.")
