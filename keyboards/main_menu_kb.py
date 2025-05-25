@@ -5,7 +5,9 @@ def main_menu_kb():
         keyboard=[
             [KeyboardButton(text="📅  Розклад"), KeyboardButton(text="📂 CV")],
             [KeyboardButton(text="🎯 Гра Share and Win"), KeyboardButton(text="👥 Чат з учасниками")],
-            [KeyboardButton(text="🗣️ Спікери"), KeyboardButton(text="🩵💛 Підтримка ЗСУ")]
+            [KeyboardButton(text="🗣️ Спікери"), KeyboardButton(text="🩵💛 Підтримка ЗСУ")],
+            [KeyboardButton(text="💬 Відгуки події")]
+
         ],
         resize_keyboard=True
     )

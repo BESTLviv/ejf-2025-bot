@@ -227,3 +227,7 @@ async def show_ukraine_support(message: types.Message):
         caption=caption,
         parse_mode="HTML"
     )
+@router.message(F.text == "💬 Відгуки події")
+async def ask_for_feedbacks(message: types.Message):
+    await message.answer("💬 Залишити відгук можна буде в другий <b>день Ярмарку</b>, 29 травня.\nПовертайся до цієї кнопки трохи згодом — нам дуже важлива твоя думка!",
+                         parse_mode="HTML")
