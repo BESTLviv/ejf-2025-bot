@@ -38,7 +38,7 @@ async def show_schedule(message: types.Message):
     photo_path = "media/schedule.jpg"
     await message.answer_photo(
         photo=FSInputFile(photo_path),
-        caption="<b>Ми створили <a href='https://ejf.best-lviv.org.ua/schedule'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність.</b>\n\n"
+        caption="<b>Ми створили <a href='https://calendar.google.com/calendar/u/0?cid=ZDFkN2Y2YWIwYTBhZTdkMGExNTYyMWMxYzFkMWFhMDg1NWE0MzM4ZDA0OTU5NzI0NjVmZDcxNGZlMTY5YzAxY0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t'>розклад</a> так, щоб ти міг повністю зануритись у кожну активність.</b>\n\n"
         "Використай цю можливість на максимум, та з нетерпінням чекаємо тебе!",
         parse_mode="HTML"
     )
