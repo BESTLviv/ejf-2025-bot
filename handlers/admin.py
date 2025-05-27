@@ -30,8 +30,21 @@ def admin_inline_kb():
             [InlineKeyboardButton(text="Отримати всі CV користувачів", callback_data="get_cvs")],
             [InlineKeyboardButton(text="Розсилка для відгуків", callback_data="get_feedback")],
             [InlineKeyboardButton(text="Розсилка збору", callback_data="zbir_brodcast")],
+            [InlineKeyboardButton(text="Кількість зареєстрованих користувачів", callback_data="count_users")],
         ]
     )
+
+@router.callback_query(F.data == "count_users")
+async def count_users_callback(callback: CallbackQuery):
+    await callback.message.answer("Збір інформації про кількість зареєстрованих користувачів...")
+
+    users_cursor = await get_all_users()
+    count = 0
+    async for user in users_cursor:
+        if user.get("registered"):
+            count += 1
+
+    await callback.message.answer(f"✅ Кількість зареєстрованих користувачів: {count}")
 
 def confirm_broadcast_kb():
     return InlineKeyboardMarkup(
