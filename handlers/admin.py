@@ -9,7 +9,7 @@ import os
 import json
 from aiogram.types import ReplyKeyboardRemove, FSInputFile
 from keyboards.main_menu_kb import main_menu_kb 
-from utils.database import get_all_users, cv_collection, db
+from utils.database import get_all_users, cv_collection, db, count_all_users 
 
 load_dotenv()
 ADMIN = os.getenv("ADMIN")
@@ -36,14 +36,7 @@ def admin_inline_kb():
 
 @router.callback_query(F.data == "count_users")
 async def count_users_callback(callback: CallbackQuery):
-    await callback.message.answer("Збір інформації про кількість зареєстрованих користувачів...")
-
-    users_cursor = await get_all_users()
-    count = 0
-    async for user in users_cursor:
-        if user.get("registered"):
-            count += 1
-
+    count = await count_all_users()
     await callback.message.answer(f"✅ Кількість зареєстрованих користувачів: {count}")
 
 def confirm_broadcast_kb():

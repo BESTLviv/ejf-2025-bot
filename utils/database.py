@@ -69,3 +69,5 @@ async def count_users():
 
 async def get_all_users():
     return users_collection.find({})
+async def count_all_users():
+    return await users_collection.count_documents({})
