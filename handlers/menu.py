@@ -258,59 +258,59 @@ def rating_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-@router.message(F.text == "💬 Відгуки події")
-async def ask_for_feedbacks(message: types.Message):
-    await message.answer("💬 Залишити відгук можна буде в другий <b>день Ярмарку</b>, 29 травня.\nПовертайся до цієї кнопки трохи згодом — нам дуже важлива твоя думка!",
-                         parse_mode="HTML")
-
-# class FeedbackStates(StatesGroup):# всі штуки з фідбеками
-#     waiting_for_comment = State()
 # @router.message(F.text == "💬 Відгуки події")
-# async def start_feedback(message: types.Message, state: FSMContext):
-#     await state.clear()  # Очистити попередні стани на всякий випадок
-#     await message.answer(
-#         "Це були два неймовірні дні! Ми намагалися зробити <b>Інженерний Ярмарок Карʼєри</b> якомога кориснішим і цікавим для тебе. А тепер твоя черга допомогти нам стати кращими! Оціни, будь ласка, захід від 1 до 5 📊.",
-#         parse_mode="HTML",
-#         reply_markup=rating_keyboard()
-#     )
-# @router.callback_query(F.data.startswith("rate_"))
-# async def handle_rating(callback: CallbackQuery, state: FSMContext):
-#     rating = int(callback.data.split("_")[1])
-#     await state.update_data(rating=rating)
+# async def ask_for_feedbacks(message: types.Message):
+#     await message.answer("💬 Залишити відгук можна буде в другий <b>день Ярмарку</b>, 29 травня.\nПовертайся до цієї кнопки трохи згодом — нам дуже важлива твоя думка!",
+#                          parse_mode="HTML")
 
-#     await callback.message.edit_text(
-#         "🙏 Дякуємо за оцінку!\nНам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити – адже саме твій відгук спонукає нас до розвитку!",
-#         parse_mode="HTML",
-#         reply_markup=None
-#     )
-#     await state.set_state(FeedbackStates.waiting_for_comment)
-# @router.message(FeedbackStates.waiting_for_comment)
-# async def save_feedback(message: types.Message, state: FSMContext):
-#     user_id = message.from_user.id
-#     comment = message.text
-#     data = await state.get_data()
-#     rating = data.get('rating')
+class FeedbackStates(StatesGroup):# всі штуки з фідбеками
+    waiting_for_comment = State()
+@router.message(F.text == "💬 Відгуки події")
+async def start_feedback(message: types.Message, state: FSMContext):
+    await state.clear()  # Очистити попередні стани на всякий випадок
+    await message.answer(
+        "Це були два неймовірні дні! Ми намагалися зробити <b>Інженерний Ярмарок Карʼєри</b> якомога кориснішим і цікавим для тебе. А тепер твоя черга допомогти нам стати кращими! Оціни, будь ласка, захід від 1 до 5 📊.",
+        parse_mode="HTML",
+        reply_markup=rating_keyboard()
+    )
+@router.callback_query(F.data.startswith("rate_"))
+async def handle_rating(callback: CallbackQuery, state: FSMContext):
+    rating = int(callback.data.split("_")[1])
+    await state.update_data(rating=rating)
 
-#     feedback_collection = db["feedbacks"]
-#     await feedback_collection.update_one(
-#         {"telegram_id": user_id},
-#         {"$set": {
-#             "telegram_id": user_id,
-#             "rating": rating,
-#             "comment": comment
-#         }},
-#         upsert=True
-#     )
+    await callback.message.edit_text(
+        "🙏 Дякуємо за оцінку!\nНам дуже важливо почути твою думку. Напиши, що тобі сподобалось, а що можна покращити – адже саме твій відгук спонукає нас до розвитку!",
+        parse_mode="HTML",
+        reply_markup=None
+    )
+    await state.set_state(FeedbackStates.waiting_for_comment)
+@router.message(FeedbackStates.waiting_for_comment)
+async def save_feedback(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    comment = message.text
+    data = await state.get_data()
+    rating = data.get('rating')
 
-#     await message.answer(
-#         "Дуже дякуємо! Твої відповіді допоможуть нам рухатися у правильному напрямку.\n\n"
-#         "Хочемо нагадати, що <b>Інженерний Ярмарок Кар’єри</b> став можливим завдяки студентській організації <b>BEST Lviv</b>. Ми створюємо й інші круті події, які можуть тебе зацікавити:\n\n"
-#         "🟣 <b>BEST Training Week</b> – тиждень лекцій від спікерів;\n"
-#         "🔴 <b>BEST Capture The Flag</b> – командні змагання з кібербезпеки;\n"
-#         "🟠 <b>BEST Engineering Competition</b> – інженерні змагання;\n"
-#         "🟢 <b>BEST::HACKath0n</b> – 24-годинні IT-змагання;\n"
-#         "Усі ці заходи є <b>безкоштовними</b>, тож слідкуй за нашими соцмережами та долучайся до інших подій, які зацікавили! 🎯",
-#         parse_mode="HTML",
-#         reply_markup=main_menu_kb()
-#     )
-#     await state.clear()
+    feedback_collection = db["feedbacks"]
+    await feedback_collection.update_one(
+        {"telegram_id": user_id},
+        {"$set": {
+            "telegram_id": user_id,
+            "rating": rating,
+            "comment": comment
+        }},
+        upsert=True
+    )
+
+    await message.answer(
+        "Дуже дякуємо! Твої відповіді допоможуть нам рухатися у правильному напрямку.\n\n"
+        "Хочемо нагадати, що <b>Інженерний Ярмарок Кар’єри</b> став можливим завдяки студентській організації <b>BEST Lviv</b>. Ми створюємо й інші круті події, які можуть тебе зацікавити:\n\n"
+        "🟣 <b>BEST Training Week</b> – тиждень лекцій від спікерів;\n"
+        "🔴 <b>BEST Capture The Flag</b> – командні змагання з кібербезпеки;\n"
+        "🟠 <b>BEST Engineering Competition</b> – інженерні змагання;\n"
+        "🟢 <b>BEST::HACKath0n</b> – 24-годинні IT-змагання;\n"
+        "Усі ці заходи є <b>безкоштовними</b>, тож слідкуй за нашими соцмережами та долучайся до інших подій, які зацікавили! 🎯",
+        parse_mode="HTML",
+        reply_markup=main_menu_kb()
+    )
+    await state.clear()
