@@ -314,6 +314,8 @@ async def save_feedback(message: types.Message, state: FSMContext):
         reply_markup=main_menu_kb()
     )
     await message.answer(
-        "<b>Дякую, що заповнили!</b> А щоб отримати свій маленький презент підходьте до інформаційної зони <b>«BEST Lviv»</b> ❤️❤️❤️"
+        "<b>Дякую, що заповнили!</b> А щоб отримати свій маленький презент підходьте до інформаційної зони <b>«BEST Lviv»</b> ❤️❤️❤️",
+        parse_mode="HTML"
+
     )
     await state.clear()
