@@ -14,8 +14,6 @@ from keyboards.main_menu_kb import main_menu_kb
 from utils.database import get_all_users, cv_collection, db, count_all_users, get_user, get_cv, add_cv, update_cv_file_path
 from PIL import Image, ImageDraw, ImageFont
 import logging
-from utils.database import update_cv_file_path
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -163,6 +161,11 @@ async def generate_improved_cv(user_id, temp_dir, bot):
                 caption=f"Improved CV for user {user_id} ({user_name})"
             )
             new_file_id = message.document.file_id
+            # Update file_id in database
+            success = await update_cv_file_path(user_id, new_file_id)
+            if not success:
+                logger.error(f"Failed to update file_id for user {user_id} in database")
+                return None, None, None
             logger.info(f"Successfully sent CV for user {user_id} to admin chat, file_id: {new_file_id}")
             return pdf_path, user_name, new_file_id
         except TelegramAPIError as e:
@@ -185,7 +188,6 @@ async def improve_cvs_callback(callback: CallbackQuery):
     
     temp_dir = "temp_cv_files"
     os.makedirs(temp_dir, exist_ok=True)
-    zip_path = os.path.join(temp_dir, "cvs_archive.zip")
     count = 0
     failed = 0
     skipped = 0
@@ -212,17 +214,14 @@ async def improve_cvs_callback(callback: CallbackQuery):
             os.rmdir(temp_dir)
         return
     
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for user_id in cv_users:
-            pdf_path, user_name, new_file_id = await generate_improved_cv(user_id, temp_dir, callback.bot)
-            if pdf_path and new_file_id:
-                zipf.write(pdf_path, f"CV_{user_name}.pdf")
-                await update_cv_file_path(user_id, new_file_id)
-                count += 1
-            else:
-                failed += 1
-                logger.warning(f"Failed to generate or update CV for user {user_id}")
-            await asyncio.sleep(0.1)  # Avoid Telegram rate limits
+    for user_id in cv_users:
+        pdf_path, user_name, new_file_id = await generate_improved_cv(user_id, temp_dir, callback.bot)
+        if pdf_path and new_file_id:
+            count += 1
+        else:
+            failed += 1
+            logger.warning(f"Failed to generate or update CV for user {user_id}")
+        await asyncio.sleep(0.1)  # Avoid Telegram rate limits
     
     if count == 0:
         await callback.message.answer(f"❌ Жодного CV не вдалося покращити. Пропущено: {skipped}, Помилки: {failed}")
@@ -236,13 +235,10 @@ async def improve_cvs_callback(callback: CallbackQuery):
         f"✅ Покращено {count} CV, file_id оновлено в базі. Помилки: {failed}, Пропущено: {skipped}"
     )
     
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
     if os.path.exists(temp_dir):
         for file in os.listdir(temp_dir):
             os.remove(os.path.join(temp_dir, file))
         os.rmdir(temp_dir)
-
 def confirm_broadcast_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
