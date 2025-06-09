@@ -249,127 +249,127 @@ def draw_wrapped_text(draw, text, font, fill, x, y, max_width_pixels, line_spaci
         y += line_height
     return y
 
-async def generate_improved_cv(user_id, temp_dir):
-    cv = await get_cv(user_id)
-    if not cv:
-        return None, None
+# async def generate_improved_cv(user_id, temp_dir):
+#     cv = await get_cv(user_id)
+#     if not cv:
+#         return None, None
     
-    required_fields = ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts']
-    if not all(cv.get(field) for field in required_fields):
-        return None, None
+#     required_fields = ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts']
+#     if not all(cv.get(field) for field in required_fields):
+#         return None, None
     
-    user = await get_user(user_id)
-    user_name = user.get("name", f"User_{user_id}") if user else f"User_{user_id}"
-    safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
-    pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}_{user_id}.pdf")
+#     user = await get_user(user_id)
+#     user_name = user.get("name", f"User_{user_id}") if user else f"User_{user_id}"
+#     safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
+#     pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}_{user_id}.pdf")
     
-    try:
-        image = Image.open("templates/cv_template.png").convert("RGB")
-        draw = ImageDraw.Draw(image)
-        font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 16)  # Increased font size
-        font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 40)  # Increased title size
+#     try:
+#         image = Image.open("templates/cv_template.png").convert("RGB")
+#         draw = ImageDraw.Draw(image)
+#         font_text = ImageFont.truetype("fonts/Nunito-Regular.ttf", 16)  # Increased font size
+#         font_title = ImageFont.truetype("fonts/Exo2-Regular.ttf", 40)  # Increased title size
         
-        max_width_pixels = 350  # Adjusted for template width
-        x_position = 320  # Slightly adjusted for better alignment
-        y_position = 60   # Start higher for better spacing
+#         max_width_pixels = 350  # Adjusted for template width
+#         x_position = 320  # Slightly adjusted for better alignment
+#         y_position = 60   # Start higher for better spacing
         
-        # Draw title (user name)
-        y_position = draw_wrapped_text(
-            draw, user_name, font=font_title, fill="#111A94", 
-            x=x_position, y=y_position, max_width_pixels=max_width_pixels, line_spacing=10
-        )
-        y_position += 30  # Extra spacing after title
+#         # Draw title (user name)
+#         y_position = draw_wrapped_text(
+#             draw, user_name, font=font_title, fill="#111A94", 
+#             x=x_position, y=y_position, max_width_pixels=max_width_pixels, line_spacing=10
+#         )
+#         y_position += 30  # Extra spacing after title
         
-        # Draw CV fields
-        fields = [
-            ("Бажана посада:", cv['position']),
-            ("Володіння мовами:", cv['languages']),
-            ("Освіта:", cv['education']),
-            ("Досвід:", cv['experience']),
-            ("Навички:", cv['skills']),
-            ("Про кандидата:", cv['about']),
-            ("Контакти:", cv['contacts'])
-        ]
+#         # Draw CV fields
+#         fields = [
+#             ("Бажана посада:", cv['position']),
+#             ("Володіння мовами:", cv['languages']),
+#             ("Освіта:", cv['education']),
+#             ("Досвід:", cv['experience']),
+#             ("Навички:", cv['skills']),
+#             ("Про кандидата:", cv['about']),
+#             ("Контакти:", cv['contacts'])
+#         ]
         
-        for label, content in fields:
-            # Draw label in bold (simulated by larger font)
-            y_position = draw_wrapped_text(
-                draw, label, font=font_text, fill="#111A94", 
-                x=x_position, y=y_position, max_width_pixels=max_width_pixels, line_spacing=5
-            )
-            y_position += 10
-            # Draw content
-            y_position = draw_wrapped_text(
-                draw, content, font=font_text, fill="#000000", 
-                x=x_position + 10, y=y_position, max_width_pixels=max_width_pixels - 10, line_spacing=5
-            )
-            y_position += 20  # Space between sections
+#         for label, content in fields:
+#             # Draw label in bold (simulated by larger font)
+#             y_position = draw_wrapped_text(
+#                 draw, label, font=font_text, fill="#111A94", 
+#                 x=x_position, y=y_position, max_width_pixels=max_width_pixels, line_spacing=5
+#             )
+#             y_position += 10
+#             # Draw content
+#             y_position = draw_wrapped_text(
+#                 draw, content, font=font_text, fill="#000000", 
+#                 x=x_position + 10, y=y_position, max_width_pixels=max_width_pixels - 10, line_spacing=5
+#             )
+#             y_position += 20  # Space between sections
         
-        image.save(pdf_path, "PDF")
-        return pdf_path, user_name
-    except Exception as e:
-        print(f"Error generating CV for user {user_id}: {e}")
-        return None, None
+#         image.save(pdf_path, "PDF")
+#         return pdf_path, user_name
+#     except Exception as e:
+#         print(f"Error generating CV for user {user_id}: {e}")
+#         return None, None
 
-@router.callback_query(F.data == "improve_cvs")
-async def improve_cvs_callback(callback: CallbackQuery):
-    await callback.message.answer("📈 Покращуємо згенеровані CV та створюємо ZIP-архів...")
+# @router.callback_query(F.data == "improve_cvs")
+# async def improve_cvs_callback(callback: CallbackQuery):
+#     await callback.message.answer("📈 Покращуємо згенеровані CV та створюємо ZIP-архів...")
     
-    temp_dir = "temp_cv_files"
-    os.makedirs(temp_dir, exist_ok=True)
-    zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
-    count = 0
-    failed = 0
+    # temp_dir = "temp_cv_files"
+    # os.makedirs(temp_dir, exist_ok=True)
+    # zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    # count = 0
+    # failed = 0
     
-    cursor = cv_collection.find({})
-    cv_users = []
-    async for cv in cursor:
-        user_id = cv.get("telegram_id")
-        if user_id:
-            cv_users.append(user_id)
+    # cursor = cv_collection.find({})
+    # cv_users = []
+    # async for cv in cursor:
+    #     user_id = cv.get("telegram_id")
+    #     if user_id:
+    #         cv_users.append(user_id)
     
-    if not cv_users:
-        await callback.message.answer("❌ Жодного CV не знайдено.")
-        if os.path.exists(temp_dir):
-            for file in os.listdir(temp_dir):
-                os.remove(os.path.join(temp_dir, file))
-            os.rmdir(temp_dir)
-        return
+    # if not cv_users:
+    #     await callback.message.answer("❌ Жодного CV не знайдено.")
+    #     if os.path.exists(temp_dir):
+    #         for file in os.listdir(temp_dir):
+    #             os.remove(os.path.join(temp_dir, file))
+    #         os.rmdir(temp_dir)
+    #     return
     
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for user_id in cv_users:
-            pdf_path, user_name = await generate_improved_cv(user_id, temp_dir)
-            if pdf_path and os.path.exists(pdf_path):
-                zipf.write(pdf_path, f"CV_{user_name}_{user_id}.pdf")
-                os.remove(pdf_path)
-                count += 1
-            else:
-                failed += 1
-                print(f"Failed to generate CV for user {user_id}")
+    # with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+    #     for user_id in cv_users:
+    #         pdf_path, user_name = await generate_improved_cv(user_id, temp_dir)
+    #         if pdf_path and os.path.exists(pdf_path):
+    #             zipf.write(pdf_path, f"CV_{user_name}_{user_id}.pdf")
+    #             os.remove(pdf_path)
+    #             count += 1
+    #         else:
+    #             failed += 1
+    #             print(f"Failed to generate CV for user {user_id}")
     
-    if count == 0:
-        await callback.message.answer("❌ Жодного CV не вдалося покращити.")
-        if os.path.exists(temp_dir):
-            for file in os.listdir(temp_dir):
-                os.remove(os.path.join(temp_dir, file))
-            os.rmdir(temp_dir)
-        return
+    # if count == 0:
+    #     await callback.message.answer("❌ Жодного CV не вдалося покращити.")
+    #     if os.path.exists(temp_dir):
+    #         for file in os.listdir(temp_dir):
+    #             os.remove(os.path.join(temp_dir, file))
+    #         os.rmdir(temp_dir)
+    #     return
     
-    try:
-        zip_file = FSInputFile(zip_path, filename="improved_cvs_archive.zip")
-        await callback.message.answer_document(
-            document=zip_file,
-            caption=f"✅ ZIP-архів з {count} покращених CV створено. Помилки: {failed}"
-        )
-    except Exception as e:
-        await callback.message.answer(f"❌ Помилка при відправці ZIP-архіву: {e}")
-    finally:
-        if os.path.exists(zip_path):
-            os.remove(zip_path)
-        if os.path.exists(temp_dir):
-            for file in os.listdir(temp_dir):
-                os.remove(os.path.join(temp_dir, file))
-            os.rmdir(temp_dir)
+    # try:
+    #     zip_file = FSInputFile(zip_path, filename="improved_cvs_archive.zip")
+    #     await callback.message.answer_document(
+    #         document=zip_file,
+    #         caption=f"✅ ZIP-архів з {count} покращених CV створено. Помилки: {failed}"
+    #     )
+    # except Exception as e:
+    #     await callback.message.answer(f"❌ Помилка при відправці ZIP-архіву: {e}")
+    # finally:
+    #     if os.path.exists(zip_path):
+    #         os.remove(zip_path)
+    #     if os.path.exists(temp_dir):
+    #         for file in os.listdir(temp_dir):
+    #             os.remove(os.path.join(temp_dir, file))
+    #         os.rmdir(temp_dir)
 def confirm_broadcast_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
