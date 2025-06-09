@@ -164,8 +164,8 @@ async def improve_cvs_callback(callback: CallbackQuery):
     
     temp_dir = "temp_cv_files"
     os.makedirs(temp_dir, exist_ok=True)
-    improved_zip_path = os.path.join(temp_dir, "cvs_archive.zip")
-    incomplete_zip_path = os.path.join(temp_dir, "cvs_archive.zip")
+    improved_zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    incomplete_zip_path = os.path.join(temp_dir, "incomplete_cvs_archive.zip")
     improved_count = 0
     incomplete_count = 0
     failed_improved = 0
@@ -237,7 +237,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
                         async with session.get(file_url) as response:
                             if response.status == 200:
                                 file_data = await response.read()
-                                file_name = f"CV_{safe_user_name}_{user_id}.pdf"
+                                file_name = f"CV_{safe_user_name}.pdf"
                                 temp_file_path = os.path.join(temp_dir, file_name)
                                 with open(temp_file_path, "wb") as f:
                                     f.write(file_data)
@@ -260,7 +260,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
     # Відправляємо архів із покращеними CV
     if improved_count > 0:
         try:
-            zip_file = FSInputFile(improved_zip_path, filename="cvs_archive.zip")
+            zip_file = FSInputFile(improved_zip_path, filename="improved_cvs_archive.zip")
             await callback.message.answer_document(
                 document=zip_file,
                 caption=f"✅ ZIP-архів із {improved_count} покращених CV (повні дані) створено.\n"
@@ -274,7 +274,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
     # Відправляємо архів із неповними CV
     if incomplete_count > 0:
         try:
-            zip_file = FSInputFile(incomplete_zip_path, filename="cvs_archive.zip")
+            zip_file = FSInputFile(incomplete_zip_path, filename="incomplete_cvs_archive.zip")
             await callback.message.answer_document(
                 document=zip_file,
                 caption=f"✅ ZIP-архів із {incomplete_count} неповних CV створено.\n"
@@ -294,6 +294,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
         for file in os.listdir(temp_dir):
             os.remove(os.path.join(temp_dir, file))
         os.rmdir(temp_dir)
+
 def confirm_broadcast_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
