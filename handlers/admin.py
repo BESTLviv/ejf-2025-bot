@@ -85,7 +85,6 @@ from aiogram.types import FSInputFile
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 async def generate_improved_cv(user_id, temp_dir, cv_data):
     """
     Генерує покращене CV у форматі PDF для користувача.
@@ -157,16 +156,94 @@ async def generate_improved_cv(user_id, temp_dir, cv_data):
     except Exception as e:
         logger.error(f"Error generating CV for user {user_id}: {e}")
         return None, None, missing_fields
-    finally:
-        if os.path.exists(pdf_path):
-            try:
-                os.remove(pdf_path)
-                logger.info(f"Removed temporary PDF for user {user_id}")
-            except Exception as e:
-                logger.error(f"Error removing temp PDF for user {user_id}: {e}")
 
 @router.callback_query(F.data == "improve_cvs")
 async def improve_cvs_callback(callback: CallbackQuery):
+    await callback.message.answer("📈 Створюємо покращені CV та формуємо ZIP-архів...")
+    
+    temp_dir = "temp_cv_files"
+    os.makedirs(temp_dir, exist_ok=True)
+    zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    count = 0
+    failed = 0
+    incomplete_cvs = 0
+    
+    cursor = cv_collection.find({})
+    cv_users = []
+    
+    # Збираємо всіх користувачів із CV
+    async for cv in cursor:
+        user_id = cv.get("telegram_id")
+        if user_id:
+            cv_users.append((user_id, cv))
+    
+    if not cv_users:
+        await callback.message.answer("❌ Жодного CV не знайдено.")
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+        return
+    
+    # Створюємо ZIP-архів
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for user_id, cv_data in cv_users:
+            pdf_path, user_name, missing_fields = await generate_improved_cv(user_id, temp_dir, cv_data)
+            safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
+            
+            if pdf_path:
+                # Додаємо позначку для CV із неповними даними
+                file_name = f"CV_{safe_user_name}"
+                if missing_fields:
+                    file_name += "_incomplete"
+                    incomplete_cvs += 1
+                file_name += ".pdf"
+                
+                try:
+                    zipf.write(pdf_path, file_name)
+                    count += 1
+                    logger.info(f"Added CV for user {user_id} to ZIP")
+                except Exception as e:
+                    failed += 1
+                    logger.error(f"Failed to add CV for user {user_id} to ZIP: {e}")
+                finally:
+                    if os.path.exists(pdf_path):
+                        try:
+                            os.remove(pdf_path)
+                            logger.info(f"Removed temporary PDF for user {user_id}")
+                        except Exception as e:
+                            logger.error(f"Error removing temp PDF for user {user_id}: {e}")
+            else:
+                failed += 1
+                logger.warning(f"Failed to generate CV for user {user_id}")
+            
+            await asyncio.sleep(0.1)  # Avoid rate limits
+    
+    if count == 0:
+        await callback.message.answer(f"❌ Жодного CV не вдалося покращити. Помилки: {failed}")
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+        return
+    
+    try:
+        zip_file = FSInputFile(zip_path, filename="cvs_archive.zip")
+        await callback.message.answer_document(
+            document=zip_file,
+            caption=f"✅ ZIP-архів із {count} покращених CV створено.\n"
+                    f"Неповні CV: {incomplete_cvs}\nПомилки: {failed}"
+        )
+    except Exception as e:
+        await callback.message.answer(f"❌ Помилка при відправці ZIP-архіву: {e}")
+    finally:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+
     await callback.message.answer("📈 Створюємо покращені CV та формуємо ZIP-архів...")
     
     temp_dir = "temp_cv_files"
