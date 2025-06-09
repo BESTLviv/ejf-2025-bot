@@ -142,7 +142,7 @@ async def generate_improved_cv(user_id, temp_dir, bot):
         with open(pdf_path, 'rb') as pdf_file:
             sent_message = await bot.send_document(
                 chat_id=user_id,
-                document=FSInputFile(pdf_path, filename=f"CV_{safe_user_name}_{user_id}.pdf")
+                document=FSInputFile(pdf_path, filename=f"CV_{safe_user_name}.pdf")
             )
             new_file_id = sent_message.document.file_id
         
