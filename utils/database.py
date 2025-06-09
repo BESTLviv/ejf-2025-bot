@@ -71,3 +71,11 @@ async def get_all_users():
     return users_collection.find({})
 async def count_all_users():
     return await users_collection.count_documents({})
+
+
+async def update_cv_file_path(user_id: int, file_id: str) -> bool:
+    result = await cv_collection.update_one(
+        {"telegram_id": str(user_id)},
+        {"$set": {"cv_file_path": file_id}}
+    )
+    return result.matched_count > 0

@@ -25,7 +25,7 @@ import json
 import zipfile
 import aiohttp
 from keyboards.main_menu_kb import main_menu_kb 
-from utils.database import get_all_users, cv_collection, db, count_all_users, get_user, get_cv, add_cv, update_cv_file_path
+from utils.database import get_all_users, cv_collection, db, count_all_users, get_user, get_cv, add_cv, update_cv_file_path  
 from PIL import Image, ImageDraw, ImageFont
 
 load_dotenv()
