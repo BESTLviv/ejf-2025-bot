@@ -94,7 +94,7 @@ async def generate_improved_cv(user_id, temp_dir, cv_data):
     missing_fields = [field for field in required_fields if not cv_data.get(field)]
     user_name = cv_data.get("user_name", f"User_{user_id}")
     safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
-    pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}.pdf")
+    pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}_{user_id}.pdf")
     
     try:
         # Verify template and font files
@@ -160,14 +160,16 @@ async def generate_improved_cv(user_id, temp_dir, cv_data):
 
 @router.callback_query(F.data == "improve_cvs")
 async def improve_cvs_callback(callback: CallbackQuery):
-    await callback.message.answer("📈 Створюємо ZIP-архів із покращеними та неповними CV...")
+    await callback.message.answer("📈 Створюємо покращені CV та формуємо ZIP-архіви...")
     
     temp_dir = "temp_cv_files"
     os.makedirs(temp_dir, exist_ok=True)
-    zip_path = os.path.join(temp_dir, "cv_archive.zip")
+    improved_zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    incomplete_zip_path = os.path.join(temp_dir, "incomplete_cvs_archive.zip")
     improved_count = 0
     incomplete_count = 0
-    failed = 0
+    failed_improved = 0
+    failed_incomplete = 0
     
     cursor = cv_collection.find({})
     complete_cvs = []
@@ -192,21 +194,20 @@ async def improve_cvs_callback(callback: CallbackQuery):
             os.rmdir(temp_dir)
         return
     
-    # Створюємо єдиний ZIP-архів
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        # Обробка покращених CV (лише повні)
+    # Створюємо ZIP для покращених CV (лише повні)
+    with zipfile.ZipFile(improved_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for user_id, cv_data in complete_cvs:
             pdf_path, user_name, missing_fields = await generate_improved_cv(user_id, temp_dir, cv_data)
             safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
             
             if pdf_path:
-                file_name = f"CV_{safe_user_name}.pdf"
+                file_name = f"CV_{safe_user_name}_{user_id}.pdf"
                 try:
                     zipf.write(pdf_path, file_name)
                     improved_count += 1
                     logger.info(f"Added improved CV for user {user_id} to ZIP")
                 except Exception as e:
-                    failed += 1
+                    failed_improved += 1
                     logger.error(f"Failed to add improved CV for user {user_id} to ZIP: {e}")
                 finally:
                     if os.path.exists(pdf_path):
@@ -216,12 +217,13 @@ async def improve_cvs_callback(callback: CallbackQuery):
                         except Exception as e:
                             logger.error(f"Error removing temp PDF for user {user_id}: {e}")
             else:
-                failed += 1
+                failed_improved += 1
                 logger.warning(f"Failed to generate improved CV for user {user_id}")
             
             await asyncio.sleep(0.1)  # Avoid rate limits
-        
-        # Обробка неповних CV (існуючі PDF)
+    
+    # Створюємо ZIP для неповних CV (існуючі PDF)
+    with zipfile.ZipFile(incomplete_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         async with aiohttp.ClientSession() as session:
             for user_id, cv_data in incomplete_cvs:
                 cv_file_path = cv_data.get("cv_file_path")
@@ -235,7 +237,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
                         async with session.get(file_url) as response:
                             if response.status == 200:
                                 file_data = await response.read()
-                                file_name = f"CV_{safe_user_name}.pdf"
+                                file_name = f"CV_{safe_user_name}_{user_id}_incomplete.pdf"
                                 temp_file_path = os.path.join(temp_dir, file_name)
                                 with open(temp_file_path, "wb") as f:
                                     f.write(file_data)
@@ -244,41 +246,54 @@ async def improve_cvs_callback(callback: CallbackQuery):
                                 incomplete_count += 1
                                 logger.info(f"Added incomplete CV for user {user_id} to ZIP")
                             else:
-                                failed += 1
+                                failed_incomplete += 1
                                 logger.warning(f"Failed to download incomplete CV for user {user_id}: HTTP {response.status}")
                     except Exception as e:
-                        failed += 1
+                        failed_incomplete += 1
                         logger.warning(f"Failed to process incomplete CV for user {user_id}: {e}")
                 else:
-                    failed += 1
+                    failed_incomplete += 1
                     logger.warning(f"No CV file found for incomplete CV of user {user_id}")
                 
                 await asyncio.sleep(0.1)  # Avoid rate limits
     
-    # Відправляємо ZIP-архів
-    if improved_count + incomplete_count > 0:
+    # Відправляємо архів із покращеними CV
+    if improved_count > 0:
         try:
-            zip_file = FSInputFile(zip_path, filename="cv_archive.zip")
+            zip_file = FSInputFile(improved_zip_path, filename="improved_cvs_archive.zip")
             await callback.message.answer_document(
                 document=zip_file,
-                caption=f"✅ ZIP-архів із {improved_count + incomplete_count} CV створено.\n"
-                        f"Покращені CV: {improved_count}\n"
-                        f"Неповні CV: {incomplete_count}\n"
-                        f"Помилки: {failed}"
+                caption=f"✅ ZIP-архів із {improved_count} покращених CV (повні дані) створено.\n"
+                        f"Помилки: {failed_improved}"
             )
         except Exception as e:
-            await callback.message.answer(f"❌ Помилка при відправці ZIP-архіву: {e}")
+            await callback.message.answer(f"❌ Помилка при відправці архіву покращених CV: {e}")
     else:
-        await callback.message.answer(f"❌ Жодного CV не додано до архіву. Помилки: {failed}")
+        await callback.message.answer(f"❌ Жодного покращеного CV не створено. Помилки: {failed_improved}")
+    
+    # Відправляємо архів із неповними CV
+    if incomplete_count > 0:
+        try:
+            zip_file = FSInputFile(incomplete_zip_path, filename="incomplete_cvs_archive.zip")
+            await callback.message.answer_document(
+                document=zip_file,
+                caption=f"✅ ZIP-архів із {incomplete_count} неповних CV створено.\n"
+                        f"Помилки: {failed_incomplete}"
+            )
+        except Exception as e:
+            await callback.message.answer(f"❌ Помилка при відправці архіву неповних CV: {e}")
+    else:
+        await callback.message.answer(f"❌ Жодного неповного CV не додано до архіву. Помилки: {failed_incomplete}")
     
     # Очищення тимчасових файлів
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
+    if os.path.exists(improved_zip_path):
+        os.remove(improved_zip_path)
+    if os.path.exists(incomplete_zip_path):
+        os.remove(incomplete_zip_path)
     if os.path.exists(temp_dir):
         for file in os.listdir(temp_dir):
             os.remove(os.path.join(temp_dir, file))
         os.rmdir(temp_dir)
-
 def confirm_broadcast_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
