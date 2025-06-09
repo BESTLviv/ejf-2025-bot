@@ -157,7 +157,7 @@ async def improve_cvs_callback(callback: CallbackQuery):
     
     temp_dir = "temp_cv_files"
     os.makedirs(temp_dir, exist_ok=True)
-    zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    zip_path = os.path.join(temp_dir, "cvs_archive.zip")
     count = 0
     failed = 0
     skipped = 0
