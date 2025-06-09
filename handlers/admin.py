@@ -74,32 +74,37 @@ def draw_wrapped_text(draw, text, font, fill, x, y, max_width_pixels, line_spaci
         draw.text((x, y), line, font=font, fill=fill)
         y += line_height
     return y
+import os
+import json
+import zipfile
+from PIL import Image, ImageDraw, ImageFont
+import logging
+import aiohttp
+from aiogram.types import FSInputFile
 
-async def generate_improved_cv(user_id, temp_dir, bot):
-    cv = await get_cv(user_id)
-    if not cv:
-        logger.warning(f"No CV found for user {user_id}")
-        return None, None, None
-    
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def generate_improved_cv(user_id, temp_dir, cv_data):
+    """
+    Генерує покращене CV у форматі PDF для користувача.
+    """
     required_fields = ['position', 'languages', 'education', 'experience', 'skills', 'about', 'contacts']
-    missing_fields = [field for field in required_fields if not cv.get(field)]
-    if missing_fields:
-        logger.warning(f"Missing fields for user {user_id}: {', '.join(missing_fields)}")
-        return None, None, None
-    
-    user = await get_user(user_id)
-    user_name = user.get("name", f"User_{user_id}") if user else f"User_{user_id}"
+    missing_fields = [field for field in required_fields if not cv_data.get(field)]
+    user_name = cv_data.get("user_name", f"User_{user_id}")
     safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
-    pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}.pdf")
+    pdf_path = os.path.join(temp_dir, f"CV_{safe_user_name}_{user_id}.pdf")
     
     try:
         # Verify template and font files
         if not os.path.exists("templates/cv_template.png"):
             logger.error(f"Template file missing for user {user_id}: templates/cv_template.png")
-            return None, None, None
+            return None, None, missing_fields
+        
         if not os.path.exists("fonts/Nunito-Regular.ttf") or not os.path.exists("fonts/Exo2-Regular.ttf"):
             logger.error(f"Font files missing for user {user_id}")
-            return None, None, None
+            return None, None, missing_fields
         
         image = Image.open("templates/cv_template.png").convert("RGB")
         draw = ImageDraw.Draw(image)
@@ -117,13 +122,13 @@ async def generate_improved_cv(user_id, temp_dir, bot):
         y_position += 30
         
         fields = [
-            ("Бажана посада:", cv['position']),
-            ("Володіння мовами:", cv['languages']),
-            ("Освіта:", cv['education']),
-            ("Досвід:", cv['experience']),
-            ("Навички:", cv['skills']),
-            ("Про кандидата:", cv['about']),
-            ("Контакти:", cv['contacts'])
+            ("Бажана посада:", cv_data.get('position', 'Відсутня інформація')),
+            ("Володіння мовами:", cv_data.get('languages', 'Відсутня інформація')),
+            ("Освіта:", cv_data.get('education', 'Відсутня інформація')),
+            ("Досвід:", cv_data.get('experience', 'Відсутня інформація')),
+            ("Навички:", cv_data.get('skills', 'Відсутня інформація')),
+            ("Про кандидата:", cv_data.get('about', 'Відсутня інформація')),
+            ("Контакти:", cv_data.get('contacts', 'Відсутня інформація'))
         ]
         
         for label, content in fields:
@@ -143,37 +148,15 @@ async def generate_improved_cv(user_id, temp_dir, bot):
         # Verify PDF file
         if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) == 0:
             logger.error(f"Generated PDF for user {user_id} is empty or missing")
-            return None, None, None
-        if os.path.getsize(pdf_path) > 10 * 1024 * 1024:  # 10 MB limit for Telegram
+            return None, None, missing_fields
+        if os.path.getsize(pdf_path) > 10 * 1024 * 1024:  # 10 MB limit
             logger.error(f"Generated PDF for user {user_id} exceeds 10 MB")
-            return None, None, None
+            return None, None, missing_fields
         
-        # Send PDF to admin chat to get file_id
-        if not ADMIN or not ADMIN.lstrip('-').isdigit():
-            logger.error(f"Invalid ADMIN chat ID: {ADMIN} for user {user_id}")
-            return None, None, None
-        
-        try:
-            pdf_file = FSInputFile(pdf_path, filename=f"CV_{safe_user_name}.pdf")
-            message = await bot.send_document(
-                chat_id=ADMIN,
-                document=pdf_file,
-                caption=f"Improved CV for user {user_id} ({user_name})"
-            )
-            new_file_id = message.document.file_id
-            # Update file_id in database
-            success = await update_cv_file_path(user_id, new_file_id)
-            if not success:
-                logger.error(f"Failed to update file_id for user {user_id} in database")
-                return None, None, None
-            logger.info(f"Successfully sent CV for user {user_id} to admin chat, file_id: {new_file_id}")
-            return pdf_path, user_name, new_file_id
-        except TelegramAPIError as e:
-            logger.error(f"Telegram API error sending CV for user {user_id} to admin chat: {e}")
-            return None, None, None
+        return pdf_path, user_name, missing_fields
     except Exception as e:
         logger.error(f"Error generating CV for user {user_id}: {e}")
-        return None, None, None
+        return None, None, missing_fields
     finally:
         if os.path.exists(pdf_path):
             try:
@@ -184,6 +167,79 @@ async def generate_improved_cv(user_id, temp_dir, bot):
 
 @router.callback_query(F.data == "improve_cvs")
 async def improve_cvs_callback(callback: CallbackQuery):
+    await callback.message.answer("📈 Створюємо покращені CV та формуємо ZIP-архів...")
+    
+    temp_dir = "temp_cv_files"
+    os.makedirs(temp_dir, exist_ok=True)
+    zip_path = os.path.join(temp_dir, "improved_cvs_archive.zip")
+    count = 0
+    failed = 0
+    incomplete_cvs = 0
+    
+    cursor = cv_collection.find({})
+    cv_users = []
+    
+    # Збираємо всіх користувачів із CV
+    async for cv in cursor:
+        user_id = cv.get("telegram_id")
+        if user_id:
+            cv_users.append((user_id, cv))
+    
+    if not cv_users:
+        await callback.message.answer("❌ Жодного CV не знайдено.")
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+        return
+    
+    # Створюємо ZIP-архів
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for user_id, cv_data in cv_users:
+            pdf_path, user_name, missing_fields = await generate_improved_cv(user_id, temp_dir, cv_data)
+            safe_user_name = "".join(c for c in user_name if c.isalnum() or c in ('_',)).replace(' ', '_')
+            
+            if pdf_path:
+                # Додаємо позначку для CV із неповними даними
+                file_name = f"CV_{safe_user_name}_{user_id}"
+                if missing_fields:
+                    file_name += "_incomplete"
+                    incomplete_cvs += 1
+                file_name += ".pdf"
+                
+                zipf.write(pdf_path, file_name)
+                count += 1
+                logger.info(f"Added CV for user {user_id} to ZIP")
+            else:
+                failed += 1
+                logger.warning(f"Failed to generate CV for user {user_id}")
+            
+            await asyncio.sleep(0.1)  # Avoid rate limits
+    
+    if count == 0:
+        await callback.message.answer(f"❌ Жодного CV не вдалося покращити. Помилки: {failed}")
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
+        return
+    
+    try:
+        zip_file = FSInputFile(zip_path, filename="cvs_archive.zip")
+        await callback.message.answer_document(
+            document=zip_file,
+            caption=f"✅ ZIP-архів із {count} покращених CV створено.\n"
+                    f"Неповні CV: {incomplete_cvs}\nПомилки: {failed}"
+        )
+    except Exception as e:
+        await callback.message.answer(f"❌ Помилка при відправці ZIP-архіву: {e}")
+    finally:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+        if os.path.exists(temp_dir):
+            for file in os.listdir(temp_dir):
+                os.remove(os.path.join(temp_dir, file))
+            os.rmdir(temp_dir)
     await callback.message.answer("📈 Покращуємо згенеровані CV та оновлюємо file_id...")
     
     temp_dir = "temp_cv_files"
